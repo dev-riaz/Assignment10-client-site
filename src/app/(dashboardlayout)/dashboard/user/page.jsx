@@ -1,9 +1,9 @@
-import React from 'react';
+import Overview from '@/components/dashboard/Overview';
 
 const UserPage = () => {
     return (
         <div>
-            user page
+            <Overview></Overview>
         </div>
     );
 };

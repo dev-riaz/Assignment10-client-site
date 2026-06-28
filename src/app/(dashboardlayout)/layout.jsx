@@ -1,4 +1,4 @@
-import Sidebar from "@/components/Sidebar";
+import Sidebar from "@/components/dashboard/Sidebar";
 import { TiThMenu } from "react-icons/ti";
 
 const DashboardLayout = ({ children }) => {
@@ -38,14 +38,6 @@ const DashboardLayout = ({ children }) => {
     </div>
   );
 
-  // return (
-  //   <div className="flex">
-  //     <div className="">
-  //       <Sidebar></Sidebar>
-  //     </div>
-  //     <div className="">{children}</div>
-  //   </div>
-  // );
 };
 
 export default DashboardLayout;

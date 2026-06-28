@@ -6,6 +6,10 @@ import toast from "react-hot-toast";
 
 import { useSession, authClient } from "@/lib/auth-client";
 import Image from "next/image";
+import { useRouter } from "next/navigation";
+import { FaArrowLeft } from "react-icons/fa";
+import { ImCross } from "react-icons/im";
+import { RxCross2 } from "react-icons/rx";
 
 const CLOUDINARY_CLOUD_NAME = "dmakhtoif";
 const CLOUDINARY_UPLOAD_PRESET = "recipehub_avatars";
@@ -19,6 +23,14 @@ export default function ProfilePage() {
 
   const [fullName, setFullName] = useState("");
   const [image, setImage] = useState("");
+  const router = useRouter();
+  const handleBack = () => {
+    if (window.history.length > 1) {
+      router.back();
+    } else {
+      router.push("/dashboard/user"); // fallback
+    }
+  };
 
   const openUpdateModal = () => {
     setFullName(session?.user?.name || "");
@@ -142,7 +154,15 @@ export default function ProfilePage() {
         className="max-w-md w-full bg-white rounded-3xl shadow-2xl overflow-hidden"
       >
         {/* Cover banner */}
-        <div className="h-28 bg-gradient-to-br from-orange-500 to-orange-400" />
+
+        <div className="h-28 p-6 text-right bg-gradient-to-br from-orange-500 to-orange-400">
+          <button
+            onClick={handleBack}
+            className="btn btn-circle btn-sm bg-slate-800 hover:bg-slate-900 border-none text-white"
+          >
+            <RxCross2 size={20} />
+          </button>
+        </div>
 
         <div className="px-8 pb-8 -mt-12 flex flex-col items-center text-center">
           {/* Avatar */}
