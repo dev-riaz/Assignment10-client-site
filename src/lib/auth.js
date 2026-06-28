@@ -7,10 +7,19 @@ const db = client.db("assignment10");
 
 export const auth = betterAuth({
     database: mongodbAdapter(db, {
-        
+
         client
     }),
     emailAndPassword: {
         enabled: true,
     },
+    user: {
+        additionalFields: {
+            role: {
+                defaultValue:"customer"
+                // type: "string",
+                // input: false
+            }
+        }
+    }
 });
