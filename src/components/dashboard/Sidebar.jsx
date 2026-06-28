@@ -30,7 +30,7 @@ const userMenus = [
   },
   {
     title: "My Recipes",
-    href: "/dashboard/user/my-recipes",
+    href: "/dashboard/user/myRecipe",
     icon: <FaBookOpen size={18} />,
   },
   {
