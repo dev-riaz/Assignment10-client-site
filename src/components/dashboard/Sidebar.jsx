@@ -40,12 +40,12 @@ const userMenus = [
   },
   {
     title: "My Favorites",
-    href: "/dashboard/user/favorites",
+    href: "/dashboard/user/myFavorite",
     icon: <FaHeart size={18} />,
   },
   {
     title: "Purchased Recipes",
-    href: "/dashboard/user/purchased-recipes",
+    href: "/dashboard/user/purchaseRecipe",
     icon: <FaShoppingBag size={18} />,
   },
   {
