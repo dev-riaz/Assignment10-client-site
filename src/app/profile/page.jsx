@@ -7,12 +7,12 @@ import toast from "react-hot-toast";
 import { useSession, authClient } from "@/lib/auth-client";
 import Image from "next/image";
 import { useRouter } from "next/navigation";
-import { FaArrowLeft } from "react-icons/fa";
-import { ImCross } from "react-icons/im";
+
 import { RxCross2 } from "react-icons/rx";
 
-const CLOUDINARY_CLOUD_NAME = "dmakhtoif";
-const CLOUDINARY_UPLOAD_PRESET = "recipehub_avatars";
+const CLOUDINARY_CLOUD_NAME = process.env.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME;
+const CLOUDINARY_UPLOAD_PRESET =
+  process.env.NEXT_PUBLIC_CLOUDINARY_UPLOAD_PRESET;
 
 export default function ProfilePage() {
   const { data: session, isPending, refetch } = useSession();
