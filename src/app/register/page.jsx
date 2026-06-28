@@ -3,15 +3,53 @@
 import Image from "next/image";
 import Link from "next/link";
 import { useState } from "react";
+import { useRouter } from "next/navigation";
 
 import { motion } from "framer-motion";
+import toast from "react-hot-toast";
 
 import { FcGoogle } from "react-icons/fc";
 import { FaEye, FaEyeSlash } from "react-icons/fa";
 
+import { authClient, signUp } from "@/lib/auth-client";
+
 export default function Register() {
   const [showPassword, setShowPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
+  const [errorMsg, setErrorMsg] = useState("");
+  const router = useRouter();
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    setErrorMsg("");
+    setIsLoading(true);
+
+    const form = e.target;
+    const name = form.name.value;
+    const email = form.email.value;
+    const photoURL = form.photoURL.value;
+    const password = form.password.value;
+
+    const { data, error } = await authClient.signUp.email({
+      email,
+      password,
+      name,
+      image: photoURL || undefined,
+    });
+
+    if (error) {
+      const message = error.message || "Registration failed. Try again.";
+      setErrorMsg(message);
+      toast.error(message);
+      setIsLoading(false);
+      return;
+    }
+
+    toast.success("Account created successfully!");
+    form.reset();
+    router.push("/login");
+    setIsLoading(false);
+  };
 
   return (
     <section className="min-h-screen w-11/12 mx-auto bg-orange-50 flex items-center justify-center px-4 py-8">
@@ -126,7 +164,17 @@ export default function Register() {
             <span className="h-px flex-1 bg-gray-200" />
           </motion.div>
 
-          <form className="space-y-2">
+          {errorMsg && (
+            <motion.p
+              initial={{ opacity: 0, y: -8 }}
+              animate={{ opacity: 1, y: 0 }}
+              className="text-sm text-red-500 bg-red-50 border border-red-200 rounded-xl px-3 py-2 mb-3 text-center"
+            >
+              {errorMsg}
+            </motion.p>
+          )}
+
+          <form onSubmit={handleSubmit} className="space-y-2">
             {/* Name */}
             <motion.div
               initial={{ opacity: 0, y: 12 }}
