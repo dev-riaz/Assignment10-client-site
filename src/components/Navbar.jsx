@@ -8,6 +8,10 @@ import toast from "react-hot-toast";
 
 import { useSession, signOut } from "@/lib/auth-client";
 import Image from "next/image";
+import { MdDashboard } from "react-icons/md";
+import { CgProfile } from "react-icons/cg";
+import { BsBrowserChrome } from "react-icons/bs";
+import { AiFillHome } from "react-icons/ai";
 
 const Navbar = () => {
   const { data: session, isPending } = useSession();
@@ -36,7 +40,7 @@ const Navbar = () => {
       transition={{ duration: 0.6, ease: "easeOut" }}
       className="bg-white shadow-sm"
     >
-      <div className="navbar w-11/12 mx-auto">
+      <div className="navbar md:w-11/12 w-full mx-auto">
         {/* Left */}
         <div className="navbar-start">
           {/* Mobile Menu */}
@@ -52,7 +56,7 @@ const Navbar = () => {
                 <path
                   strokeLinecap="round"
                   strokeLinejoin="round"
-                  strokeWidth="2"
+                  strokeWidth="3"
                   d="M4 6h16M4 12h8m-8 6h16"
                 />
               </svg>
@@ -69,7 +73,7 @@ const Navbar = () => {
                     pathname === "/" ? "text-[#FF6B35] font-semibold" : ""
                   }
                 >
-                  Home
+                  <AiFillHome />Home
                 </Link>
               </li>
               <li>
@@ -79,33 +83,22 @@ const Navbar = () => {
                     pathname === "/browse" ? "text-[#FF6B35] font-semibold" : ""
                   }
                 >
-                  Browse Recipes
+                  <BsBrowserChrome />Browse Recipes
                 </Link>
               </li>
               <li>
                 <Link
-                  href="/dashboard"
+                  href="/dashboard/user"
                   className={
-                    pathname === "/dashboard"
+                    pathname === "/dashboard/user"
                       ? "text-[#FF6B35] font-semibold"
                       : ""
                   }
                 >
-                  Dashboard
+                  <MdDashboard />Dashboard
                 </Link>
               </li>
-              <li>
-                <Link
-                  href="/premium"
-                  className={
-                    pathname === "/premium"
-                      ? "text-[#FF6B35] font-semibold"
-                      : ""
-                  }
-                >
-                  Become Premium
-                </Link>
-              </li>
+              
             </ul>
           </div>
 
@@ -135,7 +128,7 @@ const Navbar = () => {
               whileHover={{ scale: 1.05 }}
             >
               <Link href="/" className={pathname === "/" ? activeClass : ""}>
-                Home
+                <AiFillHome />Home
               </Link>
             </motion.li>
             <motion.li
@@ -148,7 +141,7 @@ const Navbar = () => {
                 href="/browse"
                 className={pathname === "/browse" ? activeClass : ""}
               >
-                Browse Recipes
+                <BsBrowserChrome />Browse Recipes
               </Link>
             </motion.li>
             <motion.li
@@ -158,23 +151,10 @@ const Navbar = () => {
               whileHover={{ scale: 1.05 }}
             >
               <Link
-                href="/dashboard"
-                className={pathname === "/dashboard" ? activeClass : ""}
+                href="/dashboard/user"
+                className={pathname === "/dashboard/user" ? activeClass : ""}
               >
-                Dashboard
-              </Link>
-            </motion.li>
-            <motion.li
-              initial={{ opacity: 0, y: -10 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.5, delay: 0.34, ease: "easeOut" }}
-              whileHover={{ scale: 1.05 }}
-            >
-              <Link
-                href="/premium"
-                className={pathname === "/premium" ? activeClass : ""}
-              >
-                Become Premium
+                <MdDashboard />Dashboard
               </Link>
             </motion.li>
           </ul>
@@ -272,11 +252,34 @@ const Navbar = () => {
 
                 <ul
                   tabIndex={0}
-                  className="menu menu-sm dropdown-content mt-3 z-[1] w-48 rounded-box bg-white shadow p-2"
+                  className="menu md:menu-lg menu-sm dropdown-content mt-3 z-[1] w-48 rounded-box bg-white shadow p-2"
                 >
                   <li>
-                    <Link href="/profile">Profile</Link>
+                    <Link
+                      href="/profile"
+                      className={
+                        pathname === "/profile"
+                          ? "text-blue-500 font-semibold"
+                          : ""
+                      }
+                    >
+                      <CgProfile />Profile
+                    </Link>
                   </li>
+
+                  <li>
+                    <Link
+                      href="/dashboard/user"
+                      className={
+                        pathname === "/dashboard/user"
+                          ? "text-blue-500 font-semibold"
+                          : ""
+                      }
+                    >
+                      <MdDashboard />Dashboard
+                    </Link>
+                  </li>
+
                   <li>
                     <button onClick={handleLogout} className="text-red-500">
                       Logout

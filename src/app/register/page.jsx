@@ -45,6 +45,7 @@ export default function Register() {
       return;
     }
 
+
     toast.success("Account created successfully!");
     form.reset();
     router.push("/login");

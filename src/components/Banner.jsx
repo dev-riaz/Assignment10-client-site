@@ -118,7 +118,7 @@ const Banner = () => {
               <motion.button
                 whileHover={{ scale: 1.05 }}
                 whileTap={{ scale: 0.95 }}
-                className="bg-orange-500 hover:bg-orange-600 transition-all duration-300 text-white font-semibold px-7 py-3 rounded-xl shadow-lg hover:shadow-xl"
+                className="bg-orange-500 hover:bg-orange-600 transition-all duration-300 text-white font-semibold px-7 py-2 rounded-xl shadow-lg hover:shadow-xl"
               >
                 Explore Recipes
               </motion.button>
@@ -126,7 +126,7 @@ const Banner = () => {
               <motion.button
                 whileHover={{ scale: 1.05 }}
                 whileTap={{ scale: 0.95 }}
-                className="border-2 border-emerald-400 text-emerald-500 hover:bg-emerald-400 hover:text-white transition-all duration-300 px-7 py-3 rounded-xl font-semibold shadow"
+                className="border-2 border-emerald-400 text-emerald-500 hover:bg-emerald-400 hover:text-white transition-all duration-300 px-5 py-2 rounded-xl font-semibold shadow"
               >
                 Become Premium
               </motion.button>
