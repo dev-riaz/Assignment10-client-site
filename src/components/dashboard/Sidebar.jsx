@@ -35,7 +35,7 @@ const userMenus = [
   },
   {
     title: "Add Recipe",
-    href: "/dashboard/user/add-recipe",
+    href: "/dashboard/user/addRecipe",
     icon: <FaPlusCircle size={18} />,
   },
   {
