@@ -148,7 +148,7 @@ const AddRecipePage = () => {
         cuisineType: form.cuisineType,
         difficultyLevel: form.difficultyLevel,
         preparationTime: form.preparationTime,
-        ingredients: form.ingredients.split("\n").filter(Boolean),
+        ingredients: form.ingredients,
         instructions: form.instructions,
 
         authorId: session.user.id,
@@ -500,3 +500,5 @@ const AddRecipePage = () => {
 };
 
 export default AddRecipePage;
+
+
