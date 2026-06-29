@@ -5,7 +5,7 @@ import {
   likeRecipe,
   unlikeRecipe,
   addFavorite,
-} from "../../../../../lib/api/getRecipe.js"
+} from "@/lib/api/getRecipe.js"
 import { use, useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import Image from "next/image";

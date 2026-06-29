@@ -8,7 +8,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { FiUploadCloud, FiImage, FiX } from "react-icons/fi";
 import { useSession } from "@/lib/auth-client";
 import { RxCross2 } from "react-icons/rx";
-import { addRecipe } from "../../../../../lib/api/addRecipe/action";
+import { addRecipe } from "@/lib/api/addRecipe/action";
 
 const CATEGORIES = [
   "Breakfast",
