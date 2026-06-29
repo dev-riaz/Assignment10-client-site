@@ -14,6 +14,7 @@ import {
   FiX,
   FiUpload,
   FiImage,
+  FiAlertTriangle,
 } from "react-icons/fi";
 import { useSession } from "@/lib/auth-client";
 import { getMyRecipe } from "@/lib/api/getRecipe";
@@ -21,6 +22,7 @@ import { updateRecipe } from "@/lib/api/updateRecipe";
 import { deleteRecipe } from "@/lib/api/deleteRecipe";
 import { uploadImageToCloudinary } from "@/lib/api/uploadImage";
 import toast from "react-hot-toast";
+import { FaHeart } from "react-icons/fa";
 
 /* ── Status Badge ── */
 const StatusBadge = ({ status }) => (
@@ -80,7 +82,26 @@ const MyRecipePage = () => {
   const [uploadingImage, setUploadingImage] = useState(false);
   const [deletingId, setDeletingId] = useState(null);
 
+  // ── Delete Confirmation Modal State ──
+  const [deleteTarget, setDeleteTarget] = useState(null);
+
   const fileInputRef = useRef(null);
+
+  const fetchRecipes = async () => {
+    try {
+      setLoading(true);
+
+      const res = await getMyRecipe(session.user.email);
+
+      if (res.success) {
+        setRecipes(res.data);
+      }
+    } catch (error) {
+      console.log(error);
+    } finally {
+      setLoading(false);
+    }
+  };
 
   useEffect(() => {
     if (isPending || !session?.user?.email) return;
@@ -88,9 +109,12 @@ const MyRecipePage = () => {
     const fetchRecipes = async () => {
       try {
         setLoading(true);
+
         const res = await getMyRecipe(session.user.email);
 
-        if (res.success) setRecipes(res.data);
+        if (res.success) {
+          setRecipes(res.data);
+        }
       } catch (error) {
         console.error(error);
       } finally {
@@ -99,9 +123,19 @@ const MyRecipePage = () => {
     };
 
     fetchRecipes();
+
+    const handleFocus = () => {
+      fetchRecipes();
+    };
+
+    window.addEventListener("focus", handleFocus);
+
+    return () => {
+      window.removeEventListener("focus", handleFocus);
+    };
   }, [session, isPending]);
 
-  /* ── Modal ── */
+  /* ── Edit Modal ── */
   const openEdit = (recipe) => {
     setEditingRecipe(recipe);
     setEditName(recipe.recipeName);
@@ -116,6 +150,10 @@ const MyRecipePage = () => {
     setEditImageFile(null);
     setIsDragging(false);
   };
+
+  /* ── Delete Confirmation Modal ── */
+  const openDeleteModal = (recipe) => setDeleteTarget(recipe);
+  const closeDeleteModal = () => setDeleteTarget(null);
 
   /* ── Image Upload ── */
   const handleFile = (file) => {
@@ -172,6 +210,7 @@ const MyRecipePage = () => {
       }
 
       toast.success("Update Recipe Successful!");
+      await fetchRecipes();
       closeEdit();
     } catch (error) {
       console.error(error);
@@ -186,10 +225,14 @@ const MyRecipePage = () => {
   };
 
   /* ── Delete on db ── */
-  const handleDelete = async (id) => {
+  const handleDelete = async () => {
+    if (!deleteTarget) return;
+
+    const id = deleteTarget._id;
     const previousRecipes = recipes;
 
     setDeletingId(id);
+    closeDeleteModal();
 
     setRecipes((prev) => prev.filter((r) => r._id !== id));
 
@@ -201,6 +244,7 @@ const MyRecipePage = () => {
       }
 
       toast.success("Recipe Delete Successful!");
+      await fetchRecipes();
     } catch (error) {
       console.error(error);
       setRecipes(previousRecipes);
@@ -224,7 +268,7 @@ const MyRecipePage = () => {
       <button
         className="btn btn-sm btn-square btn-outline btn-error"
         title="Delete"
-        onClick={() => handleDelete(recipe._id)}
+        onClick={() => openDeleteModal(recipe)}
         disabled={deletingId === recipe._id}
       >
         {deletingId === recipe._id ? (
@@ -288,7 +332,6 @@ const MyRecipePage = () => {
                 className="flex items-start justify-between gap-3 border border-gray-100 rounded-xl p-4 shadow-xs hover:shadow-sm transition-shadow"
               >
                 <div className="flex items-center gap-3 min-w-0">
-                  {/* Thumbnail */}
                   <div className="relative w-12 h-12 rounded-xl bg-orange-50 flex-shrink-0 overflow-hidden">
                     {recipe.recipeImage ? (
                       <Image
@@ -311,7 +354,8 @@ const MyRecipePage = () => {
                     <StatusBadge status={recipe.status} />
                     <div className="flex items-center gap-3 text-xs text-gray-400">
                       <span className="flex items-center gap-1">
-                        <FiHeart size={11} /> {recipe.likesCount ?? 0}
+                        <FaHeart className="text-red-500" size={11} />{" "}
+                        {recipe.likesCount ?? 0}
                       </span>
                       <span className="flex items-center gap-1">
                         <FiCalendar size={11} /> {formatDate(recipe.createdAt)}
@@ -379,7 +423,7 @@ const MyRecipePage = () => {
                     <div className="flex items-center gap-2 mt-1">
                       <StatusBadge status={recipe.status} />
                       <span className="text-xs text-gray-400 flex items-center gap-1">
-                        <FiHeart size={11} /> {recipe.likesCount ?? 0}
+                        <FaHeart className="text-red-600" size={11} /> {recipe.likesCount ?? 0}
                       </span>
                       <span className="text-xs text-gray-400 flex items-center gap-1">
                         <FiCalendar size={11} /> {formatDate(recipe.createdAt)}
@@ -394,7 +438,73 @@ const MyRecipePage = () => {
         </div>
       </div>
 
-      {/* EDIT MODAL */}
+      {/* ── DELETE CONFIRMATION MODAL ── */}
+      <AnimatePresence>
+        {deleteTarget && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              className="absolute inset-0 bg-black/40 backdrop-blur-sm"
+              onClick={closeDeleteModal}
+            />
+            <motion.div
+              variants={modalVariants}
+              initial="hidden"
+              animate="visible"
+              exit="exit"
+              className="relative bg-white rounded-2xl shadow-2xl w-full max-w-sm p-6 z-10"
+            >
+              <button
+                onClick={closeDeleteModal}
+                className="absolute top-4 right-4 btn btn-sm btn-circle btn-ghost text-gray-400"
+              >
+                <FiX size={16} />
+              </button>
+
+              {/* Warning Icon */}
+              <div className="flex items-center justify-center w-14 h-14 rounded-full bg-red-50 mx-auto mb-4">
+                <FiAlertTriangle className="text-red-500" size={26} />
+              </div>
+
+              {/* Text */}
+              <h3 className="text-lg font-bold text-gray-800 text-center mb-1">
+                Delete Recipe?
+              </h3>
+              <p className="text-sm text-gray-500 text-center mb-1">
+                Are you sure you want to delete
+              </p>
+              <p className="text-sm font-semibold text-gray-700 text-center mb-2 truncate px-2">
+                &quot;{deleteTarget.recipeName}&quot;
+              </p>
+              <p className="text-xs text-gray-400 text-center mb-6">
+                This action cannot be undone.
+              </p>
+
+              {/* Actions */}
+              <div className="flex gap-3">
+                <button
+                  onClick={closeDeleteModal}
+                  className="btn btn-outline flex-1 rounded-xl"
+                >
+                  Cancel
+                </button>
+                <motion.button
+                  onClick={handleDelete}
+                  whileHover={{ scale: 1.01 }}
+                  whileTap={{ scale: 0.98 }}
+                  className="btn btn-error flex-1 rounded-xl text-white"
+                >
+                  <FiTrash2 size={14} /> Delete
+                </motion.button>
+              </div>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
+
+      {/* ── EDIT MODAL ── */}
       <AnimatePresence>
         {editingRecipe && (
           <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
@@ -467,7 +577,7 @@ const MyRecipePage = () => {
                         }}
                         className="absolute top-2 right-2 btn btn-xs btn-circle bg-white/80 hover:bg-white border-0 shadow"
                       >
-                        <FiX size={12} />npm 
+                        <FiX size={12} />
                       </button>
                     </motion.div>
                   ) : (
