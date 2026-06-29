@@ -29,6 +29,7 @@ const RegisterPage = () => {
       email,
       password,
     });
+    // console.log(data);
 
     if (error) {
       const message = error.message || "Login failed. Check your Network connection.";

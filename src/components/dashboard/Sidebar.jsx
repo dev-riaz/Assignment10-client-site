@@ -13,7 +13,7 @@ import {
   FaHeart,
   FaShoppingBag,
   FaUser,
-  FaCog,
+  
   FaSignOutAlt,
   FaUsers,
 } from "react-icons/fa";

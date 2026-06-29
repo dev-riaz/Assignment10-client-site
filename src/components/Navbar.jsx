@@ -73,7 +73,8 @@ const Navbar = () => {
                     pathname === "/" ? "text-[#FF6B35] font-semibold" : ""
                   }
                 >
-                  <AiFillHome />Home
+                  <AiFillHome />
+                  Home
                 </Link>
               </li>
               <li>
@@ -83,7 +84,8 @@ const Navbar = () => {
                     pathname === "/browse" ? "text-[#FF6B35] font-semibold" : ""
                   }
                 >
-                  <BsBrowserChrome />Browse Recipes
+                  <BsBrowserChrome />
+                  Browse Recipes
                 </Link>
               </li>
               <li>
@@ -95,10 +97,10 @@ const Navbar = () => {
                       : ""
                   }
                 >
-                  <MdDashboard />Dashboard
+                  <MdDashboard />
+                  Dashboard
                 </Link>
               </li>
-              
             </ul>
           </div>
 
@@ -128,7 +130,8 @@ const Navbar = () => {
               whileHover={{ scale: 1.05 }}
             >
               <Link href="/" className={pathname === "/" ? activeClass : ""}>
-                <AiFillHome />Home
+                <AiFillHome />
+                Home
               </Link>
             </motion.li>
             <motion.li
@@ -141,7 +144,8 @@ const Navbar = () => {
                 href="/browse"
                 className={pathname === "/browse" ? activeClass : ""}
               >
-                <BsBrowserChrome />Browse Recipes
+                <BsBrowserChrome />
+                Browse Recipes
               </Link>
             </motion.li>
             <motion.li
@@ -154,7 +158,8 @@ const Navbar = () => {
                 href="/dashboard/user"
                 className={pathname === "/dashboard/user" ? activeClass : ""}
               >
-                <MdDashboard />Dashboard
+                <MdDashboard />
+                Dashboard
               </Link>
             </motion.li>
           </ul>
@@ -263,7 +268,8 @@ const Navbar = () => {
                           : ""
                       }
                     >
-                      <CgProfile />Profile
+                      <CgProfile />
+                      Profile
                     </Link>
                   </li>
 
@@ -276,7 +282,8 @@ const Navbar = () => {
                           : ""
                       }
                     >
-                      <MdDashboard />Dashboard
+                      <MdDashboard />
+                      Dashboard
                     </Link>
                   </li>
 
