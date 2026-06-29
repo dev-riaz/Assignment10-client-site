@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { useSession } from "@/lib/auth-client";
-import { getMyFavorites } from "@/lib/api/getRecipe";
+import { getMyFavorites } from "../../../../../lib/api/getRecipe";
 
 
 const MyFavoritesPage = () => {
