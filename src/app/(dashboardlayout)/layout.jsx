@@ -1,14 +1,31 @@
+"use client";
+
+import { useEffect } from "react";
+import { useRouter } from "next/navigation";
+import { useSession } from "@/lib/auth-client";
+
 import Sidebar from "@/components/dashboard/Sidebar";
 import { TiThMenu } from "react-icons/ti";
 
 const DashboardLayout = ({ children }) => {
+  const { data: session, isPending } = useSession();
+  const router = useRouter();
+
+  useEffect(() => {
+    if (isPending) return;
+
+  }, [session, isPending, router]);
+
+  if (isPending) {
+    return <div>Loading...</div>;
+  }
+
   return (
     <div className="drawer lg:drawer-open">
       <input id="dashboard-drawer" type="checkbox" className="drawer-toggle" />
 
       {/* Content */}
       <div className="drawer-content flex flex-col">
-        {/* Mobile Navbar */}
         <div className="navbar bg-base-100 shadow lg:hidden">
           <div className="flex-none">
             <label
@@ -37,7 +54,6 @@ const DashboardLayout = ({ children }) => {
       </div>
     </div>
   );
-
 };
 
 export default DashboardLayout;
