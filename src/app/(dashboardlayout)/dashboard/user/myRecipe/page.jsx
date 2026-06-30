@@ -1,370 +1,553 @@
 "use client";
 
-import {
-  getRecipeById,
-  likeRecipe,
-  unlikeRecipe,
-  addFavorite,
-} from "../.././../../../lib/api/getRecipe"
-import { use, useEffect, useState } from "react";
-import { useRouter } from "next/navigation";
+import { useEffect, useRef, useState } from "react";
+import Link from "next/link";
 import Image from "next/image";
-import { useSession } from "@/lib/auth-client";
+import { motion, AnimatePresence } from "framer-motion";
 import {
-  FaStar,
-  FaStarHalfAlt,
-  FaRegStar,
-  FaHeart,
-  FaRegHeart,
-  FaBookmark,
-  FaRegBookmark,
-  FaClock,
-  FaUserCircle,
-  FaUtensils,
-} from "react-icons/fa";
-import { IoMdBackspace } from "react-icons/io";
-import { MdReport } from "react-icons/md";
-import { BiSolidPurchaseTag } from "react-icons/bi";
+  FiPlus,
+  FiEdit2,
+  FiTrash2,
+  FiHeart,
+  FiCalendar,
+  FiImage,
+  FiX,
+  FiFeather,
+} from "react-icons/fi";
 
-const StarRating = ({ rating = 0 }) => {
-  const stars = [];
-  for (let i = 1; i <= 5; i++) {
-    if (rating >= i)
-      stars.push(<FaStar key={i} className="text-amber-400 text-sm" />);
-    else if (rating >= i - 0.5)
-      stars.push(<FaStarHalfAlt key={i} className="text-amber-400 text-sm" />);
-    else stars.push(<FaRegStar key={i} className="text-amber-300 text-sm" />);
-  }
-  return <div className="flex items-center gap-0.5">{stars}</div>;
+import toast from "react-hot-toast";
+
+import { useSession } from "@/lib/auth-client";
+import { getMyRecipe } from "@/lib/api/getRecipe";
+import { updateRecipe } from "@/lib/api/updateRecipe";
+import { deleteRecipe } from "@/lib/api/deleteRecipe";
+import { uploadImageToCloudinary } from "@/lib/api/uploadImage";
+
+const formatDate = (date) => {
+  if (!date) return "--";
+
+  return new Date(date).toLocaleDateString("en-US", {
+    day: "numeric",
+    month: "short",
+    year: "numeric",
+  });
 };
 
-const Tag = ({ label }) => {
-  const colorMap = {
-    Easy: "bg-green-100 text-green-700",
-    Medium: "bg-yellow-100 text-yellow-700",
-    Hard: "bg-red-100 text-red-700",
-  };
-  return (
-    <span
-      className={`px-3 py-0.5 rounded-full text-xs font-medium border border-gray-200 ${colorMap[label] ?? "bg-gray-100 text-gray-600"}`}
-    >
-      {label}
-    </span>
-  );
-};
+const StatusBadge = ({ status }) => (
+  <span
+    className={`px-3 py-1 rounded-full text-xs font-semibold ${
+      status === "Published"
+        ? "bg-green-100 text-green-700"
+        : "bg-yellow-100 text-yellow-700"
+    }`}
+  >
+    {status}
+  </span>
+);
 
-const parseLines = (str = "") =>
-  str
-    .split("\n")
-    .map((s) => s.trim())
-    .filter(Boolean);
+export default function MyRecipePage() {
+  const { data: session, isPending } = useSession();
 
-const LS_LIKED = "likedRecipes";
-const LS_FAV = "favoritedRecipes";
+  const [recipes, setRecipes] = useState([]);
+  const [loading, setLoading] = useState(true);
 
-const getLikedIds = () => JSON.parse(localStorage.getItem(LS_LIKED) || "[]");
-const getFavIds = () => JSON.parse(localStorage.getItem(LS_FAV) || "[]");
+  const [editingRecipe, setEditingRecipe] = useState(null);
 
-const addToLS = (key, id) => {
-  const arr = JSON.parse(localStorage.getItem(key) || "[]");
-  if (!arr.includes(id)) {
-    arr.push(id);
-    localStorage.setItem(key, JSON.stringify(arr));
-  }
-};
-const removeFromLS = (key, id) => {
-  const arr = JSON.parse(localStorage.getItem(key) || "[]");
-  localStorage.setItem(key, JSON.stringify(arr.filter((v) => v !== id)));
-};
+  const [editName, setEditName] = useState("");
+  const [editImage, setEditImage] = useState("");
+  const [editImageFile, setEditImageFile] = useState(null);
 
-const RecipeDetailsPage = ({ params }) => {
-  const { id } = use(params);
-  const router = useRouter();
-  const { data: session } = useSession();
+  const [saving, setSaving] = useState(false);
+  const [uploadingImage, setUploadingImage] = useState(false);
 
-  const [recipe, setRecipe] = useState(null);
-  const [liked, setLiked] = useState(false);
-  const [favorited, setFavorited] = useState(false);
-  const [likeLoading, setLikeLoading] = useState(false);
+  const [deletingId, setDeletingId] = useState(null);
+  const [deletingRecipe, setDeletingRecipe] = useState(null);
+
+  const [isDragging, setIsDragging] = useState(false);
+
+  const fileInputRef = useRef(null);
 
   useEffect(() => {
-    const fetchRecipe = async () => {
-      const res = await getRecipeById(id);
-      if (res.success) {
-        setRecipe(res.data);
-        setLiked(getLikedIds().includes(res.data._id));
-        setFavorited(getFavIds().includes(res.data._id));
+    if (isPending) return;
+    if (!session?.user?.email) return;
+
+    const loadRecipes = async () => {
+      try {
+        setLoading(true);
+
+        const res = await getMyRecipe(session.user.email);
+
+        if (res.success) {
+          setRecipes(res.data);
+        }
+      } catch (error) {
+        console.log(error);
+        toast.error("Failed to load recipes");
+      } finally {
+        setLoading(false);
       }
     };
-    fetchRecipe();
-  }, [id]);
 
-  const handleLike = async () => {
-    if (!recipe || likeLoading) return;
-    setLikeLoading(true);
+    loadRecipes();
+  }, [session, isPending]);
 
-    if (liked) {
-      const res = await unlikeRecipe(recipe._id);
-      if (res.success) {
-        removeFromLS(LS_LIKED, recipe._id);
-        setLiked(false);
-        setRecipe((prev) => ({
-          ...prev,
-          likesCount: Math.max(0, (prev.likesCount || 0) - 1),
-        }));
-      }
-    } else {
-      const res = await likeRecipe(recipe._id);
-      if (res.success) {
-        addToLS(LS_LIKED, recipe._id);
-        setLiked(true);
-        setRecipe((prev) => ({
-          ...prev,
-          likesCount: (prev.likesCount || 0) + 1,
-        }));
-      }
-    }
-    setLikeLoading(false);
+  /* ============================
+      EDIT MODAL OPEN / CLOSE
+  ============================= */
+
+  const openEdit = (recipe) => {
+    setEditingRecipe(recipe);
+    setEditName(recipe.recipeName);
+    setEditImage(recipe.recipeImage);
+    setEditImageFile(null);
   };
 
-  const handleFavorite = async () => {
-    console.log("🔥 handleFavorite clicked"); // 👈 এটা অবশ্যই দেখা উচিত
-    if (favorited || !recipe) return;
+  const closeEdit = () => {
+    setEditingRecipe(null);
+    setEditName("");
+    setEditImage("");
+    setEditImageFile(null);
+    setIsDragging(false);
+  };
 
-    const favoriteData = {
-      userEmail: session?.user?.email,
-      recipeId: recipe._id.toString(),
-      recipeName: recipe.recipeName,
-      recipeImage: recipe.recipeImage,
-      category: recipe.category,
-      cuisineType: recipe.cuisineType,
-      difficultyLevel: recipe.difficultyLevel,
-      preparationTime: recipe.preparationTime,
-      likesCount: recipe.likesCount,
-    };
+  /* ============================
+      DELETE RECIPE
+  ============================= */
 
-    // 👇 এখানে cleanভাবে console log করো
-    console.log("🔥 Favorite Payload:", favoriteData);
+  const openDeleteConfirm = (recipe) => {
+    setDeletingRecipe(recipe);
+  };
 
-    const res = await addFavorite(favoriteData);
+  const closeDeleteConfirm = () => {
+    setDeletingRecipe(null);
+  };
 
-    console.log("📩 Favorite API Response:", res);
+  const handleDelete = async () => {
+    if (!deletingRecipe) return;
 
-    if (res.success) {
-      addToLS(LS_FAV, recipe._id);
-      setFavorited(true);
+    const id = deletingRecipe._id;
+    const previousRecipes = recipes;
 
-      // 👇 optional: success confirm log
-      console.log("✅ Added to favorites:", recipe._id);
-    } else {
-      console.log("❌ Failed to add favorite");
+    setDeletingId(id);
+    setRecipes((prev) => prev.filter((item) => item._id !== id));
+    setDeletingRecipe(null);
+
+    try {
+      const res = await deleteRecipe(id);
+
+      if (!res.success) {
+        throw new Error(res.message);
+      }
+
+      toast.success("Recipe deleted successfully");
+    } catch (error) {
+      console.log(error);
+      setRecipes(previousRecipes);
+      toast.error("Delete failed");
+    } finally {
+      setDeletingId(null);
     }
   };
-  if (!recipe) {
+
+  /* ============================
+      IMAGE SELECT
+  ============================= */
+
+  const handleFile = (file) => {
+    if (!file) return;
+
+    if (!file.type.startsWith("image/")) {
+      toast.error("Please select an image");
+      return;
+    }
+
+    setEditImageFile(file);
+    setEditImage(URL.createObjectURL(file));
+  };
+
+  const onFileChange = (e) => {
+    handleFile(e.target.files[0]);
+  };
+
+  const onDrop = (e) => {
+    e.preventDefault();
+    setIsDragging(false);
+    handleFile(e.dataTransfer.files[0]);
+  };
+
+  /* ============================
+      SAVE UPDATE
+  ============================= */
+
+  const handleSave = async () => {
+    if (!editingRecipe) return;
+
+    setSaving(true);
+
+    try {
+      const payload = {
+        recipeName: editName,
+      };
+
+      if (editImageFile) {
+        setUploadingImage(true);
+
+        const imageUrl = await uploadImageToCloudinary(editImageFile);
+
+        payload.recipeImage = imageUrl;
+
+        setUploadingImage(false);
+      }
+
+      const res = await updateRecipe(editingRecipe._id, payload);
+
+      if (!res.success) {
+        throw new Error(res.message);
+      }
+
+      setRecipes((prev) =>
+        prev.map((recipe) =>
+          recipe._id === editingRecipe._id ? { ...recipe, ...payload } : recipe,
+        ),
+      );
+
+      toast.success("Recipe Updated");
+      closeEdit();
+    } catch (error) {
+      console.log(error);
+      toast.error("Update Failed");
+    } finally {
+      setSaving(false);
+      setUploadingImage(false);
+    }
+  };
+
+  if (loading || isPending) {
     return (
-      <div className="flex justify-center items-center h-screen">
-        <span className="loading loading-spinner loading-lg text-green-500" />
+      <div className="flex justify-center items-center h-[70vh]">
+        <span className="loading loading-spinner loading-lg text-success"></span>
       </div>
     );
   }
 
-  const ingredients = parseLines(recipe.ingredients);
-  const instructions = parseLines(recipe.instructions);
-
   return (
-    <div className="min-h-screen bg-[#faf9f7] px-4 py-6">
-      <div className="w-10/12 mx-auto">
-        <div className="bg-white rounded-3xl shadow-sm p-6 md:p-6">
-          <div className="text-end">
-            <button
-              onClick={() => router.back()}
-              className="hover:cursor-pointer"
-            >
-              <IoMdBackspace size={40} />
-            </button>
-          </div>
-
-          <div className="flex flex-col md:flex-row gap-8">
-            <div className="flex-shrink-0">
-              <div className="relative w-full md:w-[400px] h-[300px] rounded-2xl overflow-hidden bg-gray-100">
-                {recipe.recipeImage ? (
-                  <Image
-                    src={recipe.recipeImage}
-                    alt={recipe.recipeName}
-                    fill
-                    className="object-cover"
-                    sizes="(max-width: 768px) 100vw, 400px"
-                    priority
-                  />
-                ) : (
-                  <div className="w-full h-full flex items-center justify-center text-gray-300">
-                    <FaUtensils className="text-4xl" />
-                  </div>
-                )}
-              </div>
-            </div>
-
-            <div className="flex flex-col gap-5 flex-1">
-              <h1 className="text-4xl font-bold text-gray-600 leading-tight">
-                {recipe.recipeName}
-              </h1>
-
-              <div className="flex items-center gap-2">
-                <StarRating rating={4.8} />
-                <span className="text-md font-semibold text-gray-700">4.8</span>
-                <span className="text-sm text-gray-400">
-                  ({recipe.likesCount} reviews)
-                </span>
-              </div>
-
-              <div className="flex flex-wrap items-center gap-2">
-                <Tag label={recipe.cuisineType} />
-                <Tag label={recipe.category} />
-                <Tag label={recipe.difficultyLevel} />
-                <span className="flex items-center gap-1 text-xs text-gray-500 ml-1">
-                  <FaClock className="text-gray-400" />
-                  {recipe.preparationTime} mins
-                </span>
-              </div>
-
-              <div className="flex items-center gap-3">
-                <div className="flex items-center gap-2">
-                  <div className="w-8 h-8 rounded-full bg-gray-200 flex items-center justify-center overflow-hidden">
-                    <FaUserCircle className="text-gray-400 text-2xl" />
-                  </div>
-                  <span className="text-sm text-gray-600">
-                    by{" "}
-                    <span className="font-medium text-gray-800">
-                      {recipe.authorName}
-                    </span>
-                  </span>
-                </div>
-                <button className="ml-2 btn btn-xs rounded-full border border-gray-300 bg-white text-gray-600 hover:border-gray-400 text-xs font-medium px-4">
-                  Follow
-                </button>
-              </div>
-
-              <div className="flex items-center gap-2">
-                <span
-                  className={`px-2 py-0.5 rounded-full text-xs font-medium ${recipe.status === "Published" ? "bg-green-100 text-green-700" : "bg-yellow-100 text-yellow-700"}`}
-                >
-                  {recipe.status}
-                </span>
-                {recipe.isFeatured && (
-                  <span className="px-2 py-0.5 rounded-full text-xs font-medium bg-amber-100 text-amber-700">
-                    Featured
-                  </span>
-                )}
-              </div>
-
-              <div className="flex items-center gap-5 mt-4">
-                <button
-                  onClick={handleLike}
-                  disabled={likeLoading}
-                  className="flex items-center gap-1.5 text-sm font-medium transition hover:cursor-pointer disabled:opacity-60 disabled:cursor-not-allowed"
-                >
-                  {liked ? (
-                    <FaHeart className="text-red-500 text-base" />
-                  ) : (
-                    <FaRegHeart className="text-red-400 text-base" />
-                  )}
-                  <span className="text-gray-700 font-bold">
-                    {recipe.likesCount}
-                  </span>
-                </button>
-
-                <button
-                  onClick={handleFavorite}
-                  disabled={favorited}
-                  className={`flex items-center gap-1.5 text-sm font-bold transition ${
-                    favorited
-                      ? "text-amber-500 cursor-not-allowed"
-                      : "text-gray-500 hover:text-gray-700 hover:cursor-pointer"
-                  }`}
-                >
-                  {favorited ? (
-                    <FaBookmark className="text-base" />
-                  ) : (
-                    <FaRegBookmark className="text-base" />
-                  )}
-                  <span>{favorited ? "Saved" : "Favorite"}</span>
-                </button>
-
-                <button className="flex hover:cursor-pointer items-center gap-1.5 text-sm text-gray-400 hover:text-red-400 transition font-bold">
-                  <MdReport className="text-base" />
-                  <span>Report</span>
-                </button>
-              </div>
-            </div>
-          </div>
-
-          <div className="divider my-6" />
-
-          <div className="flex flex-col md:flex-row gap-8">
-            <div className="flex-1">
-              <h2 className="text-xl font-bold text-gray-800 mb-3">
-                Ingredients
-              </h2>
-              {ingredients.length > 0 ? (
-                <ul className="space-y-2">
-                  {ingredients.map((item, i) => (
-                    <li
-                      key={i}
-                      className="flex items-start gap-2 text-sm text-gray-600"
-                    >
-                      <span className="mt-1.5 w-1.5 h-1.5 rounded-full bg-gray-400 flex-shrink-0" />
-                      {item}
-                    </li>
-                  ))}
-                </ul>
-              ) : (
-                <p className="text-sm text-gray-400 italic">
-                  No ingredients listed.
-                </p>
-              )}
-            </div>
-
-            <div className="flex-1">
-              <h2 className="text-xl font-bold text-gray-800 mb-3">
-                Instructions
-              </h2>
-              {instructions.length > 0 ? (
-                <ol className="space-y-3">
-                  {instructions.map((step, i) => (
-                    <li
-                      key={i}
-                      className="flex items-start gap-3 text-sm text-gray-600"
-                    >
-                      <span className="flex-shrink-0 w-6 h-6 rounded-full bg-amber-400 text-white text-xs font-bold flex items-center justify-center mt-0.5">
-                        {i + 1}
-                      </span>
-                      <span>{step}</span>
-                    </li>
-                  ))}
-                </ol>
-              ) : (
-                <p className="text-sm text-gray-400 italic">
-                  No instructions listed.
-                </p>
-              )}
-            </div>
-          </div>
-
-          <div className="text-end">
-            <button className="mt-4 btn py-10 px-10 bg-orange-500 hover:bg-orange-600 text-white rounded-2xl">
-              <span className="text-2xl flex justify-center items-center font-bold gap-3">
-                <BiSolidPurchaseTag />
-                $2.99
-              </span>
-              <span className="text-xs font-normal opacity-90">
-                Purchase Recipe
-              </span>
-            </button>
-          </div>
+    <div className="max-w-7xl mx-auto p-6">
+      {/* Header */}
+      <div className="flex items-center justify-between mb-8">
+        <div>
+          <h1 className="text-3xl font-bold text-gray-800">My Recipes</h1>
+          <p className="text-gray-500 mt-1">Manage your uploaded recipes</p>
         </div>
+
+        <Link href="/dashboard/user/addRecipe">
+          <button className="btn bg-orange-500 hover:bg-orange-600 text-white rounded-xl">
+            <FiPlus />
+            Add Recipe
+          </button>
+        </Link>
       </div>
+
+      {/* Table */}
+      <div className="overflow-x-auto rounded-2xl border border-gray-200 bg-white shadow-sm">
+        <table className="table">
+          <thead className="bg-orange-50">
+            <tr>
+              <th>Recipe</th>
+              <th>Status</th>
+              <th>Likes</th>
+              <th>Date</th>
+              <th className="text-center">Action</th>
+            </tr>
+          </thead>
+
+          <tbody>
+            {recipes.length === 0 ? (
+              <tr>
+                <td colSpan={5}>
+                  <div className="flex flex-col items-center justify-center py-16">
+                    <FiFeather size={45} className="text-orange-300 mb-4" />
+
+                    <h2 className="text-xl font-bold text-gray-700">
+                      No Recipes Found
+                    </h2>
+
+                    <p className="text-sm text-gray-400 mt-2">
+                      You haven&apos;t added any recipe yet.
+                    </p>
+
+                    <Link href="/dashboard/user/addRecipe">
+                      <button className="btn btn-sm bg-orange-500 hover:bg-orange-600 text-white rounded-xl mt-5">
+                        <FiPlus />
+                        Add Recipe
+                      </button>
+                    </Link>
+                  </div>
+                </td>
+              </tr>
+            ) : (
+              recipes.map((recipe) => (
+                <tr
+                  key={recipe._id}
+                  className="hover:bg-orange-50 transition-all"
+                >
+                  {/* Recipe */}
+                  <td>
+                    <div className="flex items-center gap-3">
+                      <div className="relative w-14 h-14 rounded-xl overflow-hidden bg-gray-100">
+                        {recipe.recipeImage ? (
+                          <Image
+                            src={recipe.recipeImage}
+                            alt={recipe.recipeName}
+                            fill
+                            sizes="56px"
+                            className="object-cover"
+                          />
+                        ) : (
+                          <div className="w-full h-full flex justify-center items-center">
+                            <FiImage size={20} className="text-gray-400" />
+                          </div>
+                        )}
+                      </div>
+
+                      <div>
+                        <h3 className="font-semibold text-gray-800">
+                          {recipe.recipeName}
+                        </h3>
+                        <p className="text-xs text-gray-400">
+                          {recipe.category}
+                        </p>
+                      </div>
+                    </div>
+                  </td>
+
+                  {/* Status */}
+                  <td>
+                    <StatusBadge status={recipe.status} />
+                  </td>
+
+                  {/* Likes */}
+                  <td>
+                    <div className="flex items-center gap-2">
+                      <FiHeart className="text-red-500" />
+                      <span>{recipe.likesCount || 0}</span>
+                    </div>
+                  </td>
+
+                  {/* Date */}
+                  <td>
+                    <div className="flex items-center gap-2">
+                      <FiCalendar />
+                      {formatDate(recipe.createdAt)}
+                    </div>
+                  </td>
+
+                  {/* Action */}
+                  <td>
+                    <div className="flex justify-center gap-2">
+                      <button
+                        onClick={() => openEdit(recipe)}
+                        className="btn btn-sm btn-square bg-orange-500 hover:bg-orange-600 text-white border-0"
+                      >
+                        <FiEdit2 />
+                      </button>
+
+                      <button
+                        onClick={() => openDeleteConfirm(recipe)}
+                        disabled={deletingId === recipe._id}
+                        className="btn btn-sm btn-square btn-error text-white"
+                      >
+                        {deletingId === recipe._id ? (
+                          <span className="loading loading-spinner loading-xs"></span>
+                        ) : (
+                          <FiTrash2 />
+                        )}
+                      </button>
+                    </div>
+                  </td>
+                </tr>
+              ))
+            )}
+          </tbody>
+        </table>
+      </div>
+
+      {/* Edit Modal */}
+      <AnimatePresence>
+        {editingRecipe && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 bg-black/50 z-50 flex justify-center items-center p-5"
+          >
+            <motion.div
+              initial={{ scale: 0.8 }}
+              animate={{ scale: 1 }}
+              exit={{ scale: 0.8 }}
+              className="bg-white rounded-2xl w-full max-w-lg p-6"
+            >
+              <div className="flex justify-between items-center mb-5">
+                <h2 className="text-xl font-bold">Edit Recipe</h2>
+                <button onClick={closeEdit} className="btn btn-circle btn-sm">
+                  <FiX />
+                </button>
+              </div>
+
+              <div className="space-y-5">
+                <div>
+                  <label className="font-medium">Recipe Name</label>
+                  <input
+                    type="text"
+                    value={editName}
+                    onChange={(e) => setEditName(e.target.value)}
+                    className="input input-bordered w-full mt-2"
+                  />
+                </div>
+
+                {/* Recipe Image */}
+                <div>
+                  <label className="font-medium block mb-2">Recipe Image</label>
+
+                  {editImage ? (
+                    <div className="relative rounded-xl overflow-hidden border">
+                      <Image
+                        src={editImage}
+                        alt="Preview"
+                        width={600}
+                        height={300}
+                        className="w-full h-56 object-cover"
+                        unoptimized
+                      />
+
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setEditImage("");
+                          setEditImageFile(null);
+                        }}
+                        className="absolute top-3 right-3 btn btn-circle btn-sm bg-white"
+                      >
+                        <FiX />
+                      </button>
+                    </div>
+                  ) : (
+                    <div
+                      onDragOver={(e) => {
+                        e.preventDefault();
+                        setIsDragging(true);
+                      }}
+                      onDragLeave={() => setIsDragging(false)}
+                      onDrop={onDrop}
+                      onClick={() => fileInputRef.current?.click()}
+                      className={`border-2 border-dashed rounded-xl h-56 flex flex-col justify-center items-center cursor-pointer transition-all ${
+                        isDragging
+                          ? "border-orange-500 bg-orange-50"
+                          : "border-gray-300"
+                      }`}
+                    >
+                      <FiImage size={45} className="text-orange-400 mb-3" />
+                      <h3 className="font-semibold">Drag & Drop Image</h3>
+                      <p className="text-sm text-gray-500">
+                        অথবা Click করে Image Select করুন
+                      </p>
+                    </div>
+                  )}
+
+                  <input
+                    ref={fileInputRef}
+                    type="file"
+                    accept="image/*"
+                    className="hidden"
+                    onChange={onFileChange}
+                  />
+                </div>
+
+                {/* Buttons */}
+                <div className="flex justify-end gap-3">
+                  <button onClick={closeEdit} className="btn btn-outline">
+                    Cancel
+                  </button>
+
+                  <button
+                    onClick={handleSave}
+                    disabled={saving}
+                    className="btn bg-orange-500 hover:bg-orange-600 text-white"
+                  >
+                    {saving ? (
+                      <>
+                        <span className="loading loading-spinner loading-sm"></span>
+                        {uploadingImage ? "Uploading..." : "Saving..."}
+                      </>
+                    ) : (
+                      "Save Changes"
+                    )}
+                  </button>
+                </div>
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* Delete Confirm Modal */}
+      <AnimatePresence>
+        {deletingRecipe && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 bg-black/50 z-50 flex justify-center items-center p-5"
+          >
+            <motion.div
+              initial={{ scale: 0.8 }}
+              animate={{ scale: 1 }}
+              exit={{ scale: 0.8 }}
+              className="bg-white rounded-2xl w-full max-w-sm p-6"
+            >
+              <div className="flex justify-between items-center mb-4">
+                <h2 className="text-lg font-bold text-gray-800">
+                  Delete Recipe
+                </h2>
+                <button
+                  onClick={closeDeleteConfirm}
+                  className="btn btn-circle btn-sm"
+                >
+                  <FiX />
+                </button>
+              </div>
+
+              <p className="text-sm text-gray-500 mb-6">
+                Are you sure you want to delete{" "}
+                <span className="font-semibold text-gray-700">
+                  {deletingRecipe.recipeName}
+                </span>
+                ? This action cannot be undone.
+              </p>
+
+              <div className="flex justify-end gap-3">
+                <button
+                  onClick={closeDeleteConfirm}
+                  className="btn btn-outline"
+                >
+                  Cancel
+                </button>
+
+                <button
+                  onClick={handleDelete}
+                  disabled={deletingId === deletingRecipe._id}
+                  className="btn btn-error text-white"
+                >
+                  {deletingId === deletingRecipe._id ? (
+                    <span className="loading loading-spinner loading-sm"></span>
+                  ) : (
+                    "Delete"
+                  )}
+                </button>
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </div>
   );
-};
-
-export default RecipeDetailsPage;
+}
