@@ -36,12 +36,12 @@ export const getUserByEmail = async (email) => {
     return await serverFetch(`/api/user/by-email/${email}`);
 };
 
-export const likeRecipe = async (id) => {
-    return await serverMutation(`/api/recipe/like/${id}`, "PATCH", {});
+export const likeRecipe = async (id, userEmail) => {
+    return await serverMutation(`/api/recipe/like/${id}`, "PATCH", { userEmail });
 };
 
-export const unlikeRecipe = async (id) => {
-    return await serverMutation(`/api/recipe/unlike/${id}`, "PATCH", {});
+export const unlikeRecipe = async (id, userEmail) => {
+    return await serverMutation(`/api/recipe/unlike/${id}`, "PATCH", { userEmail });
 };
 
 export const addFavorite = async (favoriteData) => {
@@ -54,4 +54,12 @@ export const getMyFavorites = async (email) => {
 
 export const deleteFavorite = async (id) => {
     return await serverMutation(`/api/favorites/${id}`, "DELETE", {});
+};
+
+export const addPayment = async (paymentData) => {
+    return await serverMutation(`/api/payments`, "POST", paymentData);
+};
+
+export const getMyPayments = async (email) => {
+    return await serverFetch(`/api/payments/${email}`);
 };

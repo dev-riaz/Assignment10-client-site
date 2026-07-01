@@ -9,11 +9,12 @@ import {
   getMyFavorites,
   getUserById,
   getUserByEmail,
+  addPayment,
 } from "../../../../lib/api/getRecipe";
-import { LS_LIKED, getIds, addToLS, removeFromLS } from "@/lib/favoriteUtils";
 import { use, useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import Image from "next/image";
+import toast from "react-hot-toast";
 import { useSession } from "@/lib/auth-client";
 import {
   FaStar,
@@ -30,6 +31,8 @@ import {
 import { IoMdBackspace } from "react-icons/io";
 import { MdReport } from "react-icons/md";
 import { BiSolidPurchaseTag } from "react-icons/bi";
+
+const RECIPE_PRICE = 2.99;
 
 /* ── Star Rating ── */
 const StarRating = ({ rating = 0 }) => {
@@ -76,7 +79,6 @@ const RecipeDetailsPage = ({ params }) => {
   const [recipe, setRecipe] = useState(null);
   const [authorImage, setAuthorImage] = useState(null);
 
-  const [liked, setLiked] = useState(false);
   const [likeLoading, setLikeLoading] = useState(false);
 
   const [favorited, setFavorited] = useState(false);
@@ -84,13 +86,19 @@ const RecipeDetailsPage = ({ params }) => {
   const [favLoading, setFavLoading] = useState(false);
   const [favChecking, setFavChecking] = useState(true);
 
+  const [purchasing, setPurchasing] = useState(false);
+
+  /* ── Liked status — derived, no state/effect needed ── */
+  const liked = session?.user?.email
+    ? (recipe?.likedBy || []).includes(session.user.email)
+    : false;
+
   /* ── Recipe fetch ── */
   useEffect(() => {
     const fetchRecipe = async () => {
       const res = await getRecipeById(id);
       if (res.success) {
         setRecipe(res.data);
-        setLiked(getIds(LS_LIKED).includes(res.data._id));
       }
     };
     fetchRecipe();
@@ -152,26 +160,31 @@ const RecipeDetailsPage = ({ params }) => {
   /* ── Like / Unlike toggle ── */
   const handleLike = async () => {
     if (!recipe || likeLoading) return;
+
+    if (!session?.user?.email) {
+      router.push("/login");
+      return;
+    }
+
     setLikeLoading(true);
+    const userEmail = session.user.email;
 
     if (liked) {
-      const res = await unlikeRecipe(recipe._id);
+      const res = await unlikeRecipe(recipe._id, userEmail);
       if (res.success) {
-        removeFromLS(LS_LIKED, recipe._id);
-        setLiked(false);
         setRecipe((prev) => ({
           ...prev,
           likesCount: Math.max(0, (prev.likesCount || 0) - 1),
+          likedBy: (prev.likedBy || []).filter((e) => e !== userEmail),
         }));
       }
     } else {
-      const res = await likeRecipe(recipe._id);
+      const res = await likeRecipe(recipe._id, userEmail);
       if (res.success) {
-        addToLS(LS_LIKED, recipe._id);
-        setLiked(true);
         setRecipe((prev) => ({
           ...prev,
           likesCount: (prev.likesCount || 0) + 1,
+          likedBy: [...(prev.likedBy || []), userEmail],
         }));
       }
     }
@@ -224,6 +237,42 @@ const RecipeDetailsPage = ({ params }) => {
       }
     } finally {
       setFavLoading(false);
+    }
+  };
+
+  /* ── Purchase Recipe ── */
+  const handlePurchase = async () => {
+    if (!recipe || purchasing) return;
+
+    if (!session?.user?.email) {
+      router.push("/login");
+      return;
+    }
+
+    setPurchasing(true);
+
+    try {
+      const paymentData = {
+        recipeId: recipe._id.toString(),
+        userId: session.user.id,
+        userEmail: session.user.email,
+        amount: RECIPE_PRICE,
+      };
+
+      // Simulate payment processing
+      await new Promise((resolve) => setTimeout(resolve, 1200));
+
+      const res = await addPayment(paymentData);
+
+      if (res.success) {
+        toast.success("Payment successful!");
+      } else {
+        toast.error(res.message || "Payment failed. Please try again.");
+      }
+    } catch (err) {
+      toast.error("Something went wrong during payment.");
+    } finally {
+      setPurchasing(false);
     }
   };
 
@@ -439,14 +488,26 @@ const RecipeDetailsPage = ({ params }) => {
 
           {/* PURCHASE */}
           <div className="text-end">
-            <button className="mt-4 btn py-10 px-10 bg-orange-500 hover:bg-orange-600 text-white rounded-2xl">
-              <span className="text-2xl flex justify-center items-center font-bold gap-3">
-                <BiSolidPurchaseTag />
-                $2.99
-              </span>
-              <span className="text-xs font-normal opacity-90">
-                Purchase Recipe
-              </span>
+            <button
+              onClick={handlePurchase}
+              disabled={purchasing}
+              className="mt-4 btn py-10 px-10 bg-orange-500 hover:bg-orange-600 text-white rounded-2xl disabled:opacity-70"
+            >
+              {purchasing ? (
+                <span className="flex items-center gap-2">
+                  <span className="loading loading-spinner loading-sm" />
+                  Processing...
+                </span>
+              ) : (
+                <>
+                  <span className="text-2xl flex justify-center items-center font-bold gap-3">
+                    <BiSolidPurchaseTag />${RECIPE_PRICE.toFixed(2)}
+                  </span>
+                  <span className="text-xs font-normal opacity-90">
+                    Purchase Recipe
+                  </span>
+                </>
+              )}
             </button>
           </div>
         </div>
