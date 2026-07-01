@@ -4,9 +4,13 @@ import {
   getRecipeById,
   likeRecipe,
   unlikeRecipe,
-  addFavorite
- 
+  addFavorite,
+  deleteFavorite,
+  getMyFavorites,
+  getUserById,
+  getUserByEmail,
 } from "../../../../lib/api/getRecipe";
+import { LS_LIKED, getIds, addToLS, removeFromLS } from "@/lib/favoriteUtils";
 import { use, useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import Image from "next/image";
@@ -63,25 +67,6 @@ const parseLines = (str = "") =>
     .map((s) => s.trim())
     .filter(Boolean);
 
-/* ── localStorage helpers ── */
-const LS_LIKED = "likedRecipes";
-const LS_FAV = "favoritedRecipes";
-
-const getLikedIds = () => JSON.parse(localStorage.getItem(LS_LIKED) || "[]");
-const getFavIds = () => JSON.parse(localStorage.getItem(LS_FAV) || "[]");
-
-const addToLS = (key, id) => {
-  const arr = JSON.parse(localStorage.getItem(key) || "[]");
-  if (!arr.includes(id)) {
-    arr.push(id);
-    localStorage.setItem(key, JSON.stringify(arr));
-  }
-};
-const removeFromLS = (key, id) => {
-  const arr = JSON.parse(localStorage.getItem(key) || "[]");
-  localStorage.setItem(key, JSON.stringify(arr.filter((v) => v !== id)));
-};
-
 /* ── Main Component ── */
 const RecipeDetailsPage = ({ params }) => {
   const { id } = use(params);
@@ -89,21 +74,80 @@ const RecipeDetailsPage = ({ params }) => {
   const { data: session } = useSession();
 
   const [recipe, setRecipe] = useState(null);
+  const [authorImage, setAuthorImage] = useState(null);
+
   const [liked, setLiked] = useState(false);
-  const [favorited, setFavorited] = useState(false);
   const [likeLoading, setLikeLoading] = useState(false);
 
+  const [favorited, setFavorited] = useState(false);
+  const [favoriteId, setFavoriteId] = useState(null);
+  const [favLoading, setFavLoading] = useState(false);
+  const [favChecking, setFavChecking] = useState(true);
+
+  /* ── Recipe fetch ── */
   useEffect(() => {
     const fetchRecipe = async () => {
       const res = await getRecipeById(id);
       if (res.success) {
         setRecipe(res.data);
-        setLiked(getLikedIds().includes(res.data._id));
-        setFavorited(getFavIds().includes(res.data._id));
+        setLiked(getIds(LS_LIKED).includes(res.data._id));
       }
     };
     fetchRecipe();
   }, [id]);
+
+  /* ── Author profile image fetch (authorId → fallback authorEmail) ── */
+  useEffect(() => {
+    if (!recipe?.authorId && !recipe?.authorEmail) return;
+
+    const fetchAuthor = async () => {
+      // প্রথমে authorId দিয়ে try
+      if (recipe?.authorId) {
+        const res = await getUserById(recipe.authorId);
+        if (res.success && res.data?.image) {
+          setAuthorImage(res.data.image);
+          return;
+        }
+      }
+
+      // authorId দিয়ে না পেলে authorEmail দিয়ে fallback
+      if (recipe?.authorEmail) {
+        const res = await getUserByEmail(recipe.authorEmail);
+        if (res.success && res.data?.image) {
+          setAuthorImage(res.data.image);
+        }
+      }
+    };
+    fetchAuthor();
+  }, [recipe?.authorId, recipe?.authorEmail]);
+
+  /* ── Favorite status check — DB theke, localStorage na ── */
+  useEffect(() => {
+    const checkFavoriteStatus = async () => {
+      if (!session?.user?.email || !recipe?._id) {
+        setFavorited(false);
+        setFavoriteId(null);
+        setFavChecking(false);
+        return;
+      }
+
+      setFavChecking(true);
+      const res = await getMyFavorites(session.user.email);
+      if (res.success) {
+        const match = res.data.find((f) => f.recipeId === recipe._id);
+        if (match) {
+          setFavorited(true);
+          setFavoriteId(match._id);
+        } else {
+          setFavorited(false);
+          setFavoriteId(null);
+        }
+      }
+      setFavChecking(false);
+    };
+
+    checkFavoriteStatus();
+  }, [session, recipe]);
 
   /* ── Like / Unlike toggle ── */
   const handleLike = async () => {
@@ -111,7 +155,6 @@ const RecipeDetailsPage = ({ params }) => {
     setLikeLoading(true);
 
     if (liked) {
-      // Unlike
       const res = await unlikeRecipe(recipe._id);
       if (res.success) {
         removeFromLS(LS_LIKED, recipe._id);
@@ -122,7 +165,6 @@ const RecipeDetailsPage = ({ params }) => {
         }));
       }
     } else {
-      // Like
       const res = await likeRecipe(recipe._id);
       if (res.success) {
         addToLS(LS_LIKED, recipe._id);
@@ -136,25 +178,52 @@ const RecipeDetailsPage = ({ params }) => {
     setLikeLoading(false);
   };
 
-  /* ── Favorite ── */
+  /* ── Favorite / Unfavorite toggle ── */
   const handleFavorite = async () => {
-    if (favorited || !recipe) return;
+    if (!recipe || favLoading || favChecking) return;
 
-    const favoriteData = {
-      recipeId: recipe._id.toString(), 
-      recipeName: recipe.recipeName,
-      recipeImage: recipe.recipeImage,
-      category: recipe.category,
-      cuisineType: recipe.cuisineType,
-      difficultyLevel: recipe.difficultyLevel,
-      preparationTime: recipe.preparationTime,
-      likesCount: recipe.likesCount,
-    };
+    if (!session?.user?.email) {
+      router.push("/login");
+      return;
+    }
 
-    const res = await addFavorite(favoriteData);
-    if (res.success) {
-      addToLS(LS_FAV, recipe._id);
-      setFavorited(true);
+    setFavLoading(true);
+
+    try {
+      if (favorited) {
+        // ── Unfavorite ──
+        if (favoriteId) {
+          const res = await deleteFavorite(favoriteId);
+          if (res.success) {
+            setFavorited(false);
+            setFavoriteId(null);
+          }
+        }
+      } else {
+        // ── Favorite ──
+        const favoriteData = {
+          recipeId: recipe._id.toString(),
+          userEmail: session.user.email,
+          recipeName: recipe.recipeName,
+          recipeImage: recipe.recipeImage,
+          authorName: recipe.authorName,
+          category: recipe.category,
+          cuisineType: recipe.cuisineType,
+          difficultyLevel: recipe.difficultyLevel,
+          preparationTime: recipe.preparationTime,
+          likesCount: recipe.likesCount,
+        };
+
+        const res = await addFavorite(favoriteData);
+        if (res.success) {
+          setFavorited(true);
+          setFavoriteId(res.insertedId);
+        } else if (res.message === "Already favorited") {
+          setFavorited(true);
+        }
+      }
+    } finally {
+      setFavLoading(false);
     }
   };
 
@@ -232,8 +301,18 @@ const RecipeDetailsPage = ({ params }) => {
 
               <div className="flex items-center gap-3">
                 <div className="flex items-center gap-2">
-                  <div className="w-8 h-8 rounded-full bg-gray-200 flex items-center justify-center overflow-hidden">
-                    <FaUserCircle className="text-gray-400 text-2xl" />
+                  <div className="relative w-8 h-8 rounded-full bg-gray-200 flex items-center justify-center overflow-hidden">
+                    {authorImage ? (
+                      <Image
+                        src={authorImage}
+                        alt={recipe.authorName}
+                        fill
+                        className="object-cover"
+                        sizes="32px"
+                      />
+                    ) : (
+                      <FaUserCircle className="text-gray-400 text-2xl" />
+                    )}
                   </div>
                   <span className="text-sm text-gray-600">
                     by{" "}
@@ -278,13 +357,13 @@ const RecipeDetailsPage = ({ params }) => {
                   </span>
                 </button>
 
-                {/* Favorite */}
+                {/* Favorite toggle */}
                 <button
                   onClick={handleFavorite}
-                  disabled={favorited}
-                  className={`flex items-center gap-1.5 text-sm font-bold transition ${
+                  disabled={favLoading || favChecking}
+                  className={`flex items-center gap-1.5 text-sm font-bold transition disabled:opacity-60 ${
                     favorited
-                      ? "text-amber-500 cursor-not-allowed"
+                      ? "text-amber-500 hover:text-amber-600 hover:cursor-pointer"
                       : "text-gray-500 hover:text-gray-700 hover:cursor-pointer"
                   }`}
                 >

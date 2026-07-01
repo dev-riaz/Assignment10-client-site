@@ -67,6 +67,10 @@ export default function MyRecipePage() {
 
   const fileInputRef = useRef(null);
 
+  /* ============================
+      LOAD RECIPES + LIKE SYNC
+  ============================= */
+
   useEffect(() => {
     if (isPending) return;
     if (!session?.user?.email) return;
@@ -89,6 +93,29 @@ export default function MyRecipePage() {
     };
 
     loadRecipes();
+
+    // Tab e abar focus fire ashle recipes re-fetch hobe
+    // (ex: details page e like kore back ashle fresh data pawa jabe)
+    const handleFocus = () => loadRecipes();
+    window.addEventListener("focus", handleFocus);
+
+    // Details page theke like/unlike korle ei custom event dispatch hobe
+    // ekhane shei event shune shudhu shei recipe-r likesCount update kora hoy,
+    // pura list re-fetch korar dorkar hoy na
+    const handleLikeUpdate = (e) => {
+      const { recipeId, likesCount } = e.detail || {};
+      if (!recipeId) return;
+
+      setRecipes((prev) =>
+        prev.map((r) => (r._id === recipeId ? { ...r, likesCount } : r)),
+      );
+    };
+    window.addEventListener("recipeLikeUpdated", handleLikeUpdate);
+
+    return () => {
+      window.removeEventListener("focus", handleFocus);
+      window.removeEventListener("recipeLikeUpdated", handleLikeUpdate);
+    };
   }, [session, isPending]);
 
   /* ============================
@@ -233,7 +260,12 @@ export default function MyRecipePage() {
   return (
     <div className="max-w-7xl mx-auto p-6">
       {/* Header */}
-      <div className="flex items-center justify-between mb-8">
+      <motion.div
+        initial={{ opacity: 0, y: -10 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.3 }}
+        className="flex items-center justify-between mb-8"
+      >
         <div>
           <h1 className="text-3xl font-bold text-gray-800">My Recipes</h1>
           <p className="text-gray-500 mt-1">Manage your uploaded recipes</p>
@@ -245,7 +277,7 @@ export default function MyRecipePage() {
             Add Recipe
           </button>
         </Link>
-      </div>
+      </motion.div>
 
       {/* Table */}
       <div className="overflow-x-auto rounded-2xl border border-gray-200 bg-white shadow-sm">
@@ -264,7 +296,12 @@ export default function MyRecipePage() {
             {recipes.length === 0 ? (
               <tr>
                 <td colSpan={5}>
-                  <div className="flex flex-col items-center justify-center py-16">
+                  <motion.div
+                    initial={{ opacity: 0, y: 10 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ duration: 0.3 }}
+                    className="flex flex-col items-center justify-center py-16"
+                  >
                     <FiFeather size={45} className="text-orange-300 mb-4" />
 
                     <h2 className="text-xl font-bold text-gray-700">
@@ -281,91 +318,108 @@ export default function MyRecipePage() {
                         Add Recipe
                       </button>
                     </Link>
-                  </div>
+                  </motion.div>
                 </td>
               </tr>
             ) : (
-              recipes.map((recipe) => (
-                <tr
-                  key={recipe._id}
-                  className="hover:bg-orange-50 transition-all"
-                >
-                  {/* Recipe */}
-                  <td>
-                    <div className="flex items-center gap-3">
-                      <div className="relative w-14 h-14 rounded-xl overflow-hidden bg-gray-100">
-                        {recipe.recipeImage ? (
-                          <Image
-                            src={recipe.recipeImage}
-                            alt={recipe.recipeName}
-                            fill
-                            sizes="56px"
-                            className="object-cover"
-                          />
-                        ) : (
-                          <div className="w-full h-full flex justify-center items-center">
-                            <FiImage size={20} className="text-gray-400" />
-                          </div>
-                        )}
+              <AnimatePresence mode="popLayout">
+                {recipes.map((recipe, index) => (
+                  <motion.tr
+                    key={recipe._id}
+                    layout
+                    initial={{ opacity: 0, y: 12 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    exit={{ opacity: 0, x: -24 }}
+                    transition={{ duration: 0.25, delay: index * 0.04 }}
+                    className="hover:bg-orange-50 transition-all"
+                  >
+                    {/* Recipe */}
+                    <td>
+                      <div className="flex items-center gap-3">
+                        <div className="relative w-14 h-14 rounded-xl overflow-hidden bg-gray-100">
+                          {recipe.recipeImage ? (
+                            <Image
+                              src={recipe.recipeImage}
+                              alt={recipe.recipeName}
+                              fill
+                              sizes="56px"
+                              className="object-cover"
+                            />
+                          ) : (
+                            <div className="w-full h-full flex justify-center items-center">
+                              <FiImage size={20} className="text-gray-400" />
+                            </div>
+                          )}
+                        </div>
+
+                        <div>
+                          <h3 className="font-semibold text-gray-800">
+                            {recipe.recipeName}
+                          </h3>
+                          <p className="text-xs text-gray-400">
+                            {recipe.category}
+                          </p>
+                        </div>
                       </div>
+                    </td>
 
-                      <div>
-                        <h3 className="font-semibold text-gray-800">
-                          {recipe.recipeName}
-                        </h3>
-                        <p className="text-xs text-gray-400">
-                          {recipe.category}
-                        </p>
+                    {/* Status */}
+                    <td>
+                      <StatusBadge status={recipe.status} />
+                    </td>
+
+                    {/* Likes */}
+                    <td>
+                      <div className="flex items-center gap-2">
+                        <FiHeart className="text-red-500" />
+                        <AnimatePresence mode="wait">
+                          <motion.span
+                            key={recipe.likesCount || 0}
+                            initial={{ opacity: 0, y: -6 }}
+                            animate={{ opacity: 1, y: 0 }}
+                            exit={{ opacity: 0, y: 6 }}
+                            transition={{ duration: 0.2 }}
+                          >
+                            {recipe.likesCount || 0}
+                          </motion.span>
+                        </AnimatePresence>
                       </div>
-                    </div>
-                  </td>
+                    </td>
 
-                  {/* Status */}
-                  <td>
-                    <StatusBadge status={recipe.status} />
-                  </td>
+                    {/* Date */}
+                    <td>
+                      <div className="flex items-center gap-2">
+                        <FiCalendar />
+                        {formatDate(recipe.createdAt)}
+                      </div>
+                    </td>
 
-                  {/* Likes */}
-                  <td>
-                    <div className="flex items-center gap-2">
-                      <FiHeart className="text-red-500" />
-                      <span>{recipe.likesCount || 0}</span>
-                    </div>
-                  </td>
+                    {/* Action */}
+                    <td>
+                      <div className="flex justify-center gap-2">
+                        <button
+                          onClick={() => openEdit(recipe)}
+                          className="btn btn-sm btn-square bg-orange-500 hover:bg-orange-600 text-white border-0"
+                        >
+                          <FiEdit2 />
+                        </button>
 
-                  {/* Date */}
-                  <td>
-                    <div className="flex items-center gap-2">
-                      <FiCalendar />
-                      {formatDate(recipe.createdAt)}
-                    </div>
-                  </td>
-
-                  {/* Action */}
-                  <td>
-                    <div className="flex justify-center gap-2">
-                      <button
-                        onClick={() => openEdit(recipe)}
-                        className="btn btn-sm btn-square bg-orange-500 hover:bg-orange-600 text-white border-0"
-                      >
-                        <FiEdit2 />
-                      </button>
-
-                      <button
-                        onClick={() => openDeleteConfirm(recipe)}
-                        disabled={deletingId === recipe._id}
-                        className="btn btn-sm btn-square btn-error text-white"
-                      >
-                        {deletingId === recipe._id ? (
-                          <span className="loading loading-spinner loading-xs"></span>
-                        ) : (
-                          <FiTrash2 />
-                        )}
-                      </button>
-                    </div>
-                  </td>
-                </tr>
-              ))
+                        <button
+                          onClick={() => openDeleteConfirm(recipe)}
+                          disabled={deletingId === recipe._id}
+                          className="btn btn-sm btn-square btn-error text-white"
+                        >
+                          {deletingId === recipe._id ? (
+                            <span className="loading loading-spinner loading-xs"></span>
+                          ) : (
+                            <FiTrash2 />
+                          )}
+                        </button>
+                      </div>
+                    </td>
+                  </motion.tr>
+                ))}
+              </AnimatePresence>
             )}
           </tbody>
         </table>

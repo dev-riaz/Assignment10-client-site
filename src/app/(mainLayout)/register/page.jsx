@@ -44,7 +44,7 @@ export default function Register() {
       setIsLoading(false);
       return;
     }
-
+   
 
     toast.success("Account created successfully!");
     form.reset();

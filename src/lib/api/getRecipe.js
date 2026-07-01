@@ -28,6 +28,14 @@ export const getRecipeById = async (id) => {
     return await serverFetch(`/api/recipe/${id}`);
 };
 
+export const getUserById = async (id) => {
+    return await serverFetch(`/api/user/${id}`);
+};
+
+export const getUserByEmail = async (email) => {
+    return await serverFetch(`/api/user/by-email/${email}`);
+};
+
 export const likeRecipe = async (id) => {
     return await serverMutation(`/api/recipe/like/${id}`, "PATCH", {});
 };

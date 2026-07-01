@@ -57,27 +57,27 @@ const userMenus = [
 const adminMenus = [
   {
     title: "Overview",
-    href: "/dashboard/user",
+    href: "/admin/overview",
     icon: <FaTachometerAlt size={18} />,
   },
   {
     title: "Manage Users",
-    href: "/dashboard/user/my-recipes",
+    href: "/admin/manageUsers",
     icon: <FaUsers size={18} />,
   },
   {
     title: "Manage Recipes",
-    href: "/dashboard/user/add-recipe",
+    href: "/admin/manageRecipes",
     icon: <BiDish size={18} />,
   },
   {
     title: "Reports",
-    href: "/dashboard/user/favorites",
+    href: "/admin/report",
     icon: <MdReport size={18} />,
   },
   {
     title: "Transaction",
-    href: "/dashboard/user/purchased-recipes",
+    href: "/admin/transaction",
     icon: <MdOutlineAttachMoney size={20} />,
   },
 ];

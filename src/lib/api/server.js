@@ -9,10 +9,19 @@ export const serverMutation = async (path, method, data) => {
         body: JSON.stringify(data),
     });
 
-    return res.json();
+    try {
+        return await res.json();
+    } catch {
+        return { success: false, message: `Unexpected response (status ${res.status})` };
+    }
 };
 
 export const serverFetch = async (path) => {
     const res = await fetch(`${baseUrl}${path}`);
-    return res.json();
+
+    try {
+        return await res.json();
+    } catch {
+        return { success: false, message: `Unexpected response (status ${res.status})` };
+    }
 };
