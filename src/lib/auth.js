@@ -8,11 +8,11 @@ const db = client.db("assignment10");
 export const auth = betterAuth({
     baseURL: process.env.BETTER_AUTH_URL,
     secret: process.env.BETTER_AUTH_SECRET,
-    // trustedOrigins: [
-    //     "http://localhost:3000",
-    //     "https://assignmet10-client-site-rcvy.vercel.app",
-    //     "https://*.vercel.app",
-    // ],
+    trustedOrigins: [
+        "http://localhost:3000",
+        "https://assignmet10-client-site-rcvy.vercel.app",
+        "https://*.vercel.app",
+    ],
     database: mongodbAdapter(db, {
         client,
     }),
