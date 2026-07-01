@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { FiSearch, FiLock, FiUnlock } from "react-icons/fi";
-import { getAllUsers, updateUserStatus } from "@/lib/api/getRecipe"; 
+import { getAllUsers, updateUserStatus } from "@/lib/api/getRecipe";
 
 export default function ManageUsersPage() {
   const [search, setSearch] = useState("");
@@ -14,9 +14,15 @@ export default function ManageUsersPage() {
     const fetchUsers = async () => {
       try {
         const res = await getAllUsers();
-        setUsers(res.data);
+        if (res?.success) {
+          setUsers(res.data || []);
+        } else {
+          setError(res?.message || "Failed to load users");
+          setUsers([]);
+        }
       } catch (err) {
         setError("Failed to load users");
+        setUsers([]);
       } finally {
         setLoading(false);
       }
@@ -25,7 +31,7 @@ export default function ManageUsersPage() {
   }, []);
 
   const filteredUsers = useMemo(() => {
-    return users.filter(
+    return (users || []).filter(
       (user) =>
         user.name?.toLowerCase().includes(search.toLowerCase()) ||
         user.email?.toLowerCase().includes(search.toLowerCase()),
@@ -41,7 +47,10 @@ export default function ManageUsersPage() {
     );
 
     try {
-      await updateUserStatus(user._id, newStatus);
+      const res = await updateUserStatus(user._id, newStatus);
+      if (!res?.success) {
+        throw new Error(res?.message || "Update failed");
+      }
     } catch (err) {
       // fail hole revert
       setUsers((prev) =>
@@ -87,50 +96,57 @@ export default function ManageUsersPage() {
           </thead>
 
           <tbody>
-            {filteredUsers.map((user) => (
-              <tr key={user._id}>
-                <td className="font-medium">{user.name}</td>
-                <td>{user.email}</td>
-                <td>{user.premium ? "Yes" : "No"}</td>
-                <td>
-                  <span
-                    className={`font-semibold ${
-                      user.status === "Active"
-                        ? "text-green-600"
-                        : "text-red-500"
-                    }`}
-                  >
-                    {user.status || "Active"}
-                  </span>
-                </td>
-                <td className="text-center">
-                  <button
-                    onClick={() => handleToggleStatus(user)}
-                    className={`btn btn-sm rounded-lg ${
-                      user.status === "Active"
-                        ? "btn-outline border-red-300 text-red-500"
-                        : "btn-outline border-gray-300"
-                    }`}
-                  >
-                    {user.status === "Active" ? (
-                      <>
-                        <FiLock />
-                        Block
-                      </>
-                    ) : (
-                      <>
-                        <FiUnlock />
-                        Unblock
-                      </>
-                    )}
-                  </button>
+            {filteredUsers.length === 0 ? (
+              <tr>
+                <td colSpan={5} className="text-center py-6 text-gray-400">
+                  No users found
                 </td>
               </tr>
-            ))}
+            ) : (
+              filteredUsers.map((user) => (
+                <tr key={user._id}>
+                  <td className="font-medium">{user.name}</td>
+                  <td>{user.email}</td>
+                  <td>{user.premium ? "Yes" : "No"}</td>
+                  <td>
+                    <span
+                      className={`font-semibold ${
+                        user.status === "Active"
+                          ? "text-green-600"
+                          : "text-red-500"
+                      }`}
+                    >
+                      {user.status || "Active"}
+                    </span>
+                  </td>
+                  <td className="text-center">
+                    <button
+                      onClick={() => handleToggleStatus(user)}
+                      className={`btn btn-sm rounded-lg ${
+                        user.status === "Active"
+                          ? "btn-outline border-red-300 text-red-500"
+                          : "btn-outline border-gray-300"
+                      }`}
+                    >
+                      {user.status === "Active" ? (
+                        <>
+                          <FiLock />
+                          Block
+                        </>
+                      ) : (
+                        <>
+                          <FiUnlock />
+                          Unblock
+                        </>
+                      )}
+                    </button>
+                  </td>
+                </tr>
+              ))
+            )}
           </tbody>
         </table>
       </div>
     </div>
   );
 }
- 
