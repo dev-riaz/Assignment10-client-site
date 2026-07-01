@@ -1,1 +1,1 @@
-export const baseUrl = "https://assignment10-client-site.vercel.app" 
+export const baseUrl = "https://assignment10-server-site-xi.vercel.app" 
