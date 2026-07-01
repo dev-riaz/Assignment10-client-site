@@ -2,6 +2,8 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { FiSearch, FiLock, FiUnlock } from "react-icons/fi";
+import toast from "react-hot-toast";
+import { motion, AnimatePresence } from "framer-motion";
 import { getAllUsers, updateUserStatus } from "@/lib/api/getRecipe";
 
 export default function ManageUsersPage() {
@@ -51,6 +53,11 @@ export default function ManageUsersPage() {
       if (!res?.success) {
         throw new Error(res?.message || "Update failed");
       }
+      toast.success(
+        newStatus === "Blocked"
+          ? `${user.name} has been blocked`
+          : `${user.name} has been unblocked`,
+      );
     } catch (err) {
       // fail hole revert
       setUsers((prev) =>
@@ -58,7 +65,7 @@ export default function ManageUsersPage() {
           u._id === user._id ? { ...u, status: user.status } : u,
         ),
       );
-      alert("Status update failed");
+      toast.error("Status update failed");
     }
   };
 
@@ -66,11 +73,28 @@ export default function ManageUsersPage() {
   if (error) return <p className="p-6 text-red-500">{error}</p>;
 
   return (
-    <div className="bg-white rounded-2xl border border-gray-200 shadow-sm p-6">
+    <motion.div
+      initial={{ opacity: 0, y: 20 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.4, ease: "easeOut" }}
+      className="bg-white rounded-2xl border border-gray-200 shadow-sm p-6"
+    >
       <div className="flex items-center justify-between mb-6">
-        <h2 className="text-3xl font-bold text-gray-800">Manage Users</h2>
+        <motion.h2
+          initial={{ opacity: 0, x: -10 }}
+          animate={{ opacity: 1, x: 0 }}
+          transition={{ duration: 0.3 }}
+          className="text-3xl font-bold text-gray-800"
+        >
+          Manage Users
+        </motion.h2>
 
-        <div className="relative">
+        <motion.div
+          initial={{ opacity: 0, x: 10 }}
+          animate={{ opacity: 1, x: 0 }}
+          transition={{ duration: 0.3 }}
+          className="relative"
+        >
           <FiSearch className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
 
           <input
@@ -80,7 +104,7 @@ export default function ManageUsersPage() {
             onChange={(e) => setSearch(e.target.value)}
             className="input input-bordered pl-10 w-72 rounded-xl"
           />
-        </div>
+        </motion.div>
       </div>
 
       <div className="overflow-x-auto">
@@ -96,57 +120,77 @@ export default function ManageUsersPage() {
           </thead>
 
           <tbody>
-            {filteredUsers.length === 0 ? (
-              <tr>
-                <td colSpan={5} className="text-center py-6 text-gray-400">
-                  No users found
-                </td>
-              </tr>
-            ) : (
-              filteredUsers.map((user) => (
-                <tr key={user._id}>
-                  <td className="font-medium">{user.name}</td>
-                  <td>{user.email}</td>
-                  <td>{user.premium ? "Yes" : "No"}</td>
-                  <td>
-                    <span
-                      className={`font-semibold ${
-                        user.status === "Active"
-                          ? "text-green-600"
-                          : "text-red-500"
-                      }`}
-                    >
-                      {user.status || "Active"}
-                    </span>
+            <AnimatePresence>
+              {filteredUsers.length === 0 ? (
+                <motion.tr
+                  key="no-users"
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  exit={{ opacity: 0 }}
+                >
+                  <td colSpan={5} className="text-center py-6 text-gray-400">
+                    No users found
                   </td>
-                  <td className="text-center">
-                    <button
-                      onClick={() => handleToggleStatus(user)}
-                      className={`btn btn-sm rounded-lg ${
-                        user.status === "Active"
-                          ? "btn-outline border-red-300 text-red-500"
-                          : "btn-outline border-gray-300"
-                      }`}
-                    >
-                      {user.status === "Active" ? (
-                        <>
-                          <FiLock />
-                          Block
-                        </>
-                      ) : (
-                        <>
-                          <FiUnlock />
-                          Unblock
-                        </>
-                      )}
-                    </button>
-                  </td>
-                </tr>
-              ))
-            )}
+                </motion.tr>
+              ) : (
+                filteredUsers.map((user, index) => (
+                  <motion.tr
+                    key={user._id}
+                    layout
+                    initial={{ opacity: 0, y: 10 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    exit={{ opacity: 0, y: -10 }}
+                    transition={{ duration: 0.25, delay: index * 0.03 }}
+                  >
+                    <td className="font-medium">{user.name}</td>
+                    <td>{user.email}</td>
+                    <td>{user.premium ? "Yes" : "No"}</td>
+                    <td>
+                      <motion.span
+                        key={user.status}
+                        initial={{ scale: 0.8, opacity: 0 }}
+                        animate={{ scale: 1, opacity: 1 }}
+                        transition={{ duration: 0.2 }}
+                        className={`font-semibold ${
+                          user.status === "Active"
+                            ? "text-green-600"
+                            : "text-red-500"
+                        }`}
+                      >
+                        {user.status || "Active"}
+                      </motion.span>
+                    </td>
+                    <td className="text-center">
+                      <motion.button
+                        whileHover={{ scale: 1.05 }}
+                        whileTap={{ scale: 0.95 }}
+                        onClick={() => handleToggleStatus(user)}
+                        className={`btn btn-sm rounded-lg ${
+                          user.status === "Active"
+                            ? "btn-outline border-red-300 text-red-500"
+                            : "btn-outline border-gray-300"
+                        }`}
+                      >
+                        {user.status === "Active" ? (
+                          <>
+                            <FiLock />
+                            Block
+                          </>
+                        ) : (
+                          <>
+                            <FiUnlock />
+                            Unblock
+                          </>
+                        )}
+                      </motion.button>
+                    </td>
+                  </motion.tr>
+                ))
+              )}
+            </AnimatePresence>
           </tbody>
         </table>
       </div>
-    </div>
+    </motion.div>
   );
 }
