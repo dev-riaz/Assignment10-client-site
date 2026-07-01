@@ -74,3 +74,24 @@ export const getAllUsers = async () => {
 export const updateUserStatus = async (id, status) => {
     return await serverMutation(`/api/admin/users/${id}/status`, "PATCH", { status });
 };
+
+// Admin: get all recipes (any status)
+export const getAllRecipesAdmin = async ({ search = "", status = "", category = "" } = {}) => {
+    const params = new URLSearchParams();
+    if (search) params.set("search", search);
+    if (status) params.set("status", status);
+    if (category) params.set("category", category);
+
+    const query = params.toString();
+    return await serverFetch(`/api/admin/recipes${query ? `?${query}` : ""}`);
+};
+
+// Admin: update a recipe's status (Published / Pending / Rejected)
+export const updateRecipeStatus = async (id, status) => {
+    return await serverMutation(`/api/recipe/${id}`, "PATCH", { status });
+};
+
+// Admin: delete a recipe
+export const deleteRecipeAdmin = async (id) => {
+    return await serverMutation(`/api/recipe/${id}`, "DELETE", {});
+};
