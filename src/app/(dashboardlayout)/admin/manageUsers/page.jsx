@@ -1,35 +1,60 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { FiSearch, FiLock, FiUnlock } from "react-icons/fi";
-
-const users = [
-  {
-    id: 1,
-    name: "Daniel Ahmed",
-    email: "daniel@example.com",
-    premium: "Yes",
-    status: "Active",
-  },
-  {
-    id: 2,
-    name: "Sarah Johnson",
-    email: "sarah@example.com",
-    premium: "No",
-    status: "Blocked",
-  },
-];
+import { getAllUsers, updateUserStatus } from "@/lib/api/getRecipe"; 
 
 export default function ManageUsersPage() {
   const [search, setSearch] = useState("");
+  const [users, setUsers] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
+
+  useEffect(() => {
+    const fetchUsers = async () => {
+      try {
+        const res = await getAllUsers();
+        setUsers(res.data);
+      } catch (err) {
+        setError("Failed to load users");
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchUsers();
+  }, []);
 
   const filteredUsers = useMemo(() => {
     return users.filter(
       (user) =>
-        user.name.toLowerCase().includes(search.toLowerCase()) ||
-        user.email.toLowerCase().includes(search.toLowerCase()),
+        user.name?.toLowerCase().includes(search.toLowerCase()) ||
+        user.email?.toLowerCase().includes(search.toLowerCase()),
     );
-  }, [search]);
+  }, [users, search]);
+
+  const handleToggleStatus = async (user) => {
+    const newStatus = user.status === "Active" ? "Blocked" : "Active";
+
+    // UI optimistically update
+    setUsers((prev) =>
+      prev.map((u) => (u._id === user._id ? { ...u, status: newStatus } : u)),
+    );
+
+    try {
+      await updateUserStatus(user._id, newStatus);
+    } catch (err) {
+      // fail hole revert
+      setUsers((prev) =>
+        prev.map((u) =>
+          u._id === user._id ? { ...u, status: user.status } : u,
+        ),
+      );
+      alert("Status update failed");
+    }
+  };
+
+  if (loading) return <p className="p-6">Loading users...</p>;
+  if (error) return <p className="p-6 text-red-500">{error}</p>;
 
   return (
     <div className="bg-white rounded-2xl border border-gray-200 shadow-sm p-6">
@@ -54,27 +79,19 @@ export default function ManageUsersPage() {
           <thead>
             <tr>
               <th>Name</th>
-
               <th>Email</th>
-
               <th>Premium</th>
-
               <th>Status</th>
-
               <th className="text-center">Action</th>
             </tr>
           </thead>
 
           <tbody>
-            
             {filteredUsers.map((user) => (
-              <tr key={user.id}>
+              <tr key={user._id}>
                 <td className="font-medium">{user.name}</td>
-
                 <td>{user.email}</td>
-
-                <td>{user.premium}</td>
-
+                <td>{user.premium ? "Yes" : "No"}</td>
                 <td>
                   <span
                     className={`font-semibold ${
@@ -83,12 +100,12 @@ export default function ManageUsersPage() {
                         : "text-red-500"
                     }`}
                   >
-                    {user.status}
+                    {user.status || "Active"}
                   </span>
                 </td>
-
                 <td className="text-center">
                   <button
+                    onClick={() => handleToggleStatus(user)}
                     className={`btn btn-sm rounded-lg ${
                       user.status === "Active"
                         ? "btn-outline border-red-300 text-red-500"
@@ -116,3 +133,4 @@ export default function ManageUsersPage() {
     </div>
   );
 }
+ 

@@ -261,9 +261,9 @@ const Navbar = () => {
                 >
                   <li>
                     <Link
-                      href="/profile"
+                      href="/dashboard/user/profile"
                       className={
-                        pathname === "/profile"
+                        pathname === "/dashboard/user/profile"
                           ? "text-blue-500 font-semibold"
                           : ""
                       }

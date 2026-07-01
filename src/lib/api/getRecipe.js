@@ -63,3 +63,14 @@ export const addPayment = async (paymentData) => {
 export const getMyPayments = async (email) => {
     return await serverFetch(`/api/payments/${email}`);
 };
+
+
+
+// Admin data
+export const getAllUsers = async () => {
+    return await serverFetch(`/api/admin/users`);
+};
+
+export const updateUserStatus = async (id, status) => {
+    return await serverMutation(`/api/admin/users/${id}/status`, "PATCH", { status });
+};

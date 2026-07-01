@@ -51,7 +51,7 @@ const userMenus = [
   },
   {
     title: "Profile",
-    href: "/profile",
+    href: "/dashboard/user/profile",
     icon: <FaUser size={18} />,
   },
 ];
@@ -132,7 +132,7 @@ const Sidebar = () => {
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.5, delay: 0.2, ease: "easeOut" }}
       >
-        <Link href="/profile" className="flex items-center gap-3">
+        <Link href="/dashboard/user/profile" className="flex items-center gap-3">
           {session?.user?.image ? (
             <Image
               src={session.user.image}
