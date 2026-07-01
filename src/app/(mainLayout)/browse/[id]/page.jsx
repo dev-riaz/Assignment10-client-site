@@ -88,6 +88,11 @@ const RecipeDetailsPage = ({ params }) => {
 
   const [purchasing, setPurchasing] = useState(false);
 
+  /* ── নিজের recipe কিনা চেক করা (author email ভিত্তিক) ── */
+  const isOwnRecipe = session?.user?.email
+    ? session.user.email === recipe?.authorEmail
+    : false;
+
   /* ── Liked status — derived, no state/effect needed ── */
   const liked = session?.user?.email
     ? (recipe?.likedBy || []).includes(session.user.email)
@@ -249,6 +254,12 @@ const RecipeDetailsPage = ({ params }) => {
       return;
     }
 
+    // ── নিজের recipe হলে purchase বন্ধ ──
+    if (isOwnRecipe) {
+      toast.error("You can't purchase your own recipe.");
+      return;
+    }
+
     setPurchasing(true);
 
     try {
@@ -266,6 +277,7 @@ const RecipeDetailsPage = ({ params }) => {
 
       if (res.success) {
         toast.success("Payment successful!");
+        router.push("/browse");
       } else {
         toast.error(res.message || "Payment failed. Please try again.");
       }
@@ -488,27 +500,33 @@ const RecipeDetailsPage = ({ params }) => {
 
           {/* PURCHASE */}
           <div className="text-end">
-            <button
-              onClick={handlePurchase}
-              disabled={purchasing}
-              className="mt-4 btn py-10 px-10 bg-orange-500 hover:bg-orange-600 text-white rounded-2xl disabled:opacity-70"
-            >
-              {purchasing ? (
-                <span className="flex items-center gap-2">
-                  <span className="loading loading-spinner loading-sm" />
-                  Processing...
-                </span>
-              ) : (
-                <>
-                  <span className="text-2xl flex justify-center items-center font-bold gap-3">
-                    <BiSolidPurchaseTag />${RECIPE_PRICE.toFixed(2)}
+            {isOwnRecipe ? (
+              <div className="mt-4 inline-block px-6 py-3 rounded-2xl bg-gray-100 text-gray-500 text-sm font-medium">
+                This is your own recipe
+              </div>
+            ) : (
+              <button
+                onClick={handlePurchase}
+                disabled={purchasing}
+                className="mt-4 btn py-10 px-10 bg-orange-500 hover:bg-orange-600 text-white rounded-2xl disabled:opacity-70"
+              >
+                {purchasing ? (
+                  <span className="flex items-center gap-2">
+                    <span className="loading loading-spinner loading-sm" />
+                    Processing...
                   </span>
-                  <span className="text-xs font-normal opacity-90">
-                    Purchase Recipe
-                  </span>
-                </>
-              )}
-            </button>
+                ) : (
+                  <>
+                    <span className="text-2xl flex justify-center items-center font-bold gap-3">
+                      <BiSolidPurchaseTag />${RECIPE_PRICE.toFixed(2)}
+                    </span>
+                    <span className="text-xs font-normal opacity-90">
+                      Purchase Recipe
+                    </span>
+                  </>
+                )}
+              </button>
+            )}
           </div>
         </div>
       </div>

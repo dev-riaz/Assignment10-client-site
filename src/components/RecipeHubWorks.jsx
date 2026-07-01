@@ -31,7 +31,7 @@ const steps = [
 
 const RecipeHubWorks = () => {
   return (
-    <section className="bg-white py-20">
+    <section className="bg-white py-10">
       <div className="mx-auto w-11/12">
         {/* Heading */}
         <motion.div

@@ -1,10 +1,12 @@
 "use client";
 
-import { useSession } from "@/lib/auth-client";
+import { useState } from "react";
+import { useSession, signOut } from "@/lib/auth-client";
 import Image from "next/image";
 import Link from "next/link";
-import { usePathname } from "next/navigation";
+import { useRouter, usePathname } from "next/navigation";
 import { motion } from "framer-motion";
+import toast from "react-hot-toast";
 
 import {
   FaTachometerAlt,
@@ -13,7 +15,6 @@ import {
   FaHeart,
   FaShoppingBag,
   FaUser,
-  
   FaSignOutAlt,
   FaUsers,
 } from "react-icons/fa";
@@ -85,8 +86,27 @@ const Sidebar = () => {
   const { data: session, isPending } = useSession();
   const role = session?.user?.role;
   const pathname = usePathname();
+  const router = useRouter();
+
+  const [loggingOut, setLoggingOut] = useState(false);
 
   const menuItems = role === "admin" ? adminMenus : userMenus;
+
+  /* ── Logout ── */
+  const handleLogout = async () => {
+    if (loggingOut) return;
+    setLoggingOut(true);
+
+    try {
+      await signOut();
+      toast.success("Logged out successfully");
+      router.push("/login");
+    } catch (err) {
+      toast.error("Failed to log out. Please try again.");
+    } finally {
+      setLoggingOut(false);
+    }
+  };
 
   return (
     <motion.aside
@@ -203,9 +223,17 @@ const Sidebar = () => {
         animate={{ opacity: 1 }}
         transition={{ duration: 0.4, delay: 0.9 }}
       >
-        <button className="btn mb-6 w-full bg-slate-800 hover:bg-slate-700 border border-slate-600 text-white rounded-xl">
-          <FaSignOutAlt />
-          Logout
+        <button
+          onClick={handleLogout}
+          disabled={loggingOut}
+          className="btn mb-6 w-full bg-slate-800 hover:bg-slate-700 border border-slate-600 text-white rounded-xl disabled:opacity-60"
+        >
+          {loggingOut ? (
+            <span className="loading loading-spinner loading-sm" />
+          ) : (
+            <FaSignOutAlt />
+          )}
+          {loggingOut ? "Logging out..." : "Logout"}
         </button>
       </motion.div>
     </motion.aside>
