@@ -95,3 +95,13 @@ export const updateRecipeStatus = async (id, status) => {
 export const deleteRecipeAdmin = async (id) => {
     return await serverMutation(`/api/recipe/${id}`, "DELETE", {});
 };
+
+// Admin: get all transactions
+export const getAllTransactionsAdmin = async ({ search = "", status = "" } = {}) => {
+    const params = new URLSearchParams();
+    if (search) params.set("search", search);
+    if (status) params.set("status", status);
+
+    const query = params.toString();
+    return await serverFetch(`/api/admin/payments${query ? `?${query}` : ""}`);
+};

@@ -30,3 +30,7 @@ export const auth = betterAuth({
         },
     },
 });
+
+console.log("MONGO_DB_URI:", process.env.MONGO_DB_URI);
+console.log("BETTER_AUTH_URL:", process.env.BETTER_AUTH_URL);
+console.log("BETTER_AUTH_SECRET:", process.env.BETTER_AUTH_SECRET);

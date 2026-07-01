@@ -2,12 +2,12 @@
 
 import { useEffect, useState, useCallback } from "react";
 import { FiEdit2, FiTrash2, FiSearch } from "react-icons/fi";
+import { motion, AnimatePresence } from "framer-motion";
 import {
   getAllRecipesAdmin,
   updateRecipeStatus,
   deleteRecipeAdmin,
-} from "@/lib/api/getRecipe"; // adjust import path to your project
-
+} from "@/lib/api/getRecipe"; 
 const STATUS_OPTIONS = ["Published", "Pending", "Rejected"];
 
 const statusColor = (status) => {
@@ -33,6 +33,7 @@ export default function ManageRecipesPage() {
   const [pendingStatus, setPendingStatus] = useState("");
   const [savingId, setSavingId] = useState(null);
   const [deletingId, setDeletingId] = useState(null);
+  const [deletingRecipe, setDeletingRecipe] = useState(null); // recipe being delete-confirmed
 
   const fetchRecipes = useCallback(async () => {
     setLoading(true);
@@ -56,17 +57,24 @@ export default function ManageRecipesPage() {
     return () => clearTimeout(timeout);
   }, [fetchRecipes]);
 
-  const handleDelete = async (id) => {
-    const confirmed = window.confirm(
-      "Delete this recipe? This can't be undone.",
-    );
-    if (!confirmed) return;
+  const openDeleteModal = (recipe) => {
+    setDeletingRecipe(recipe);
+  };
+
+  const closeDeleteModal = () => {
+    setDeletingRecipe(null);
+  };
+
+  const handleDeleteConfirm = async () => {
+    if (!deletingRecipe) return;
+    const id = deletingRecipe._id;
 
     setDeletingId(id);
     try {
       const res = await deleteRecipeAdmin(id);
       if (res?.success) {
         setRecipes((prev) => prev.filter((r) => r._id !== id));
+        closeDeleteModal();
       } else {
         alert(res?.message || "Failed to delete recipe");
       }
@@ -110,12 +118,29 @@ export default function ManageRecipesPage() {
   };
 
   return (
-    <div className="bg-white rounded-2xl shadow border border-gray-200 p-6">
+    <motion.div
+      initial={{ opacity: 0, y: 20 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.4, ease: "easeOut" }}
+      className="bg-white rounded-2xl shadow border border-gray-200 p-4 sm:p-6"
+    >
       <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 mb-6">
-        <h2 className="text-3xl font-bold text-gray-800">Manage Recipes</h2>
+        <motion.h2
+          initial={{ opacity: 0, x: -10 }}
+          animate={{ opacity: 1, x: 0 }}
+          transition={{ duration: 0.3 }}
+          className="text-2xl sm:text-3xl font-bold text-gray-800"
+        >
+          Manage Recipes
+        </motion.h2>
 
-        <div className="flex flex-col sm:flex-row gap-3">
-          <label className="input input-bordered flex items-center gap-2">
+        <motion.div
+          initial={{ opacity: 0, x: 10 }}
+          animate={{ opacity: 1, x: 0 }}
+          transition={{ duration: 0.3 }}
+          className="flex flex-col sm:flex-row gap-3"
+        >
+          <label className="input input-bordered flex items-center gap-2 w-full sm:w-auto">
             <FiSearch className="text-gray-400" />
             <input
               type="text"
@@ -127,7 +152,7 @@ export default function ManageRecipesPage() {
           </label>
 
           <select
-            className="select select-bordered"
+            className="select select-bordered w-full sm:w-auto"
             value={statusFilter}
             onChange={(e) => setStatusFilter(e.target.value)}
           >
@@ -138,7 +163,7 @@ export default function ManageRecipesPage() {
               </option>
             ))}
           </select>
-        </div>
+        </motion.div>
       </div>
 
       {loading ? (
@@ -146,104 +171,199 @@ export default function ManageRecipesPage() {
           <span className="loading loading-spinner loading-lg text-orange-500" />
         </div>
       ) : error ? (
-        <div className="text-center py-16 text-red-500">{error}</div>
+        <motion.div
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          className="text-center py-16 text-red-500"
+        >
+          {error}
+        </motion.div>
       ) : recipes.length === 0 ? (
-        <div className="text-center py-16 text-gray-500">
+        <motion.div
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          className="text-center py-16 text-gray-500"
+        >
           No recipes found{search || statusFilter ? " for this filter" : ""}.
-        </div>
+        </motion.div>
       ) : (
-        <div className="overflow-x-auto">
-          <table className="table">
-            <thead className="bg-gray-50">
-              <tr>
-                <th>Recipe</th>
-                <th>Author</th>
-                <th>Category</th>
-                <th>Status</th>
-                <th className="text-center">Action</th>
-              </tr>
-            </thead>
-
-            <tbody>
-              {recipes.map((recipe) => (
-                <tr key={recipe._id}>
-                  <td className="font-medium">{recipe.recipeName}</td>
-                  <td>{recipe.authorName || recipe.authorEmail}</td>
-                  <td>{recipe.category}</td>
-                  <td>
-                    <span
-                      className={`font-semibold ${statusColor(recipe.status)}`}
-                    >
-                      {recipe.status || "Pending"}
-                    </span>
-                  </td>
-                  <td>
-                    <div className="flex justify-center gap-2">
-                      <button
-                        className="btn btn-sm btn-outline border-orange-300 text-orange-500 hover:bg-orange-500 hover:text-white"
-                        onClick={() => openStatusEditor(recipe)}
-                      >
-                        <FiEdit2 />
-                      </button>
-
-                      <button
-                        className="btn btn-sm btn-outline border-red-300 text-red-500 hover:bg-red-500 hover:text-white"
-                        onClick={() => handleDelete(recipe._id)}
-                        disabled={deletingId === recipe._id}
-                      >
-                        <FiTrash2 />
-                        {deletingId === recipe._id ? "Deleting..." : "Delete"}
-                      </button>
-                    </div>
-                  </td>
+        <div className="overflow-x-auto -mx-4 sm:mx-0">
+          <div className="min-w-[700px] px-4 sm:px-0 sm:min-w-0">
+            <table className="table w-full">
+              <thead className="bg-gray-50">
+                <tr>
+                  <th>Recipe</th>
+                  <th>Author</th>
+                  <th>Category</th>
+                  <th>Status</th>
+                  <th className="text-center">Action</th>
                 </tr>
-              ))}
-            </tbody>
-          </table>
+              </thead>
+
+              <tbody>
+                <AnimatePresence>
+                  {recipes.map((recipe, index) => (
+                    <motion.tr
+                      key={recipe._id}
+                      layout
+                      initial={{ opacity: 0, y: 10 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      exit={{ opacity: 0, y: -10 }}
+                      transition={{ duration: 0.25, delay: index * 0.03 }}
+                    >
+                      <td className="font-medium whitespace-nowrap">
+                        {recipe.recipeName}
+                      </td>
+                      <td className="whitespace-nowrap">
+                        {recipe.authorName || recipe.authorEmail}
+                      </td>
+                      <td className="whitespace-nowrap">{recipe.category}</td>
+                      <td>
+                        <motion.span
+                          key={recipe.status}
+                          initial={{ scale: 0.8, opacity: 0 }}
+                          animate={{ scale: 1, opacity: 1 }}
+                          transition={{ duration: 0.2 }}
+                          className={`font-semibold ${statusColor(recipe.status)}`}
+                        >
+                          {recipe.status || "Pending"}
+                        </motion.span>
+                      </td>
+                      <td>
+                        <div className="flex justify-center gap-2">
+                          <motion.button
+                            whileHover={{ scale: 1.05 }}
+                            whileTap={{ scale: 0.95 }}
+                            className="btn btn-sm btn-outline border-orange-300 text-orange-500 hover:bg-orange-500 hover:text-white"
+                            onClick={() => openStatusEditor(recipe)}
+                          >
+                            <FiEdit2 />
+                          </motion.button>
+
+                          <motion.button
+                            whileHover={{ scale: 1.05 }}
+                            whileTap={{ scale: 0.95 }}
+                            className="btn btn-sm btn-outline border-red-300 text-red-500 hover:bg-red-500 hover:text-white whitespace-nowrap"
+                            onClick={() => openDeleteModal(recipe)}
+                          >
+                            <FiTrash2 />
+                            Delete
+                          </motion.button>
+                        </div>
+                      </td>
+                    </motion.tr>
+                  ))}
+                </AnimatePresence>
+              </tbody>
+            </table>
+          </div>
         </div>
       )}
 
       {/* Status edit modal */}
-      {editingRecipe && (
-        <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50">
-          <div className="bg-white rounded-xl p-6 w-full max-w-sm shadow-lg">
-            <h3 className="text-lg font-bold text-gray-800 mb-1">
-              Update status
-            </h3>
-            <p className="text-sm text-gray-500 mb-4">
-              {editingRecipe.recipeName}
-            </p>
-
-            <select
-              className="select select-bordered w-full mb-6"
-              value={pendingStatus}
-              onChange={(e) => setPendingStatus(e.target.value)}
+      <AnimatePresence>
+        {editingRecipe && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            transition={{ duration: 0.2 }}
+            className="fixed inset-0 bg-black/40 flex items-center justify-center z-50 p-4"
+          >
+            <motion.div
+              initial={{ opacity: 0, scale: 0.95, y: 10 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.95, y: 10 }}
+              transition={{ duration: 0.2 }}
+              className="bg-white rounded-xl p-6 w-full max-w-sm shadow-lg"
             >
-              {STATUS_OPTIONS.map((s) => (
-                <option key={s} value={s}>
-                  {s}
-                </option>
-              ))}
-            </select>
+              <h3 className="text-lg font-bold text-gray-800 mb-1">
+                Update status
+              </h3>
+              <p className="text-sm text-gray-500 mb-4">
+                {editingRecipe.recipeName}
+              </p>
 
-            <div className="flex justify-end gap-2">
-              <button
-                className="btn btn-sm btn-ghost"
-                onClick={closeStatusEditor}
+              <select
+                className="select select-bordered w-full mb-6"
+                value={pendingStatus}
+                onChange={(e) => setPendingStatus(e.target.value)}
               >
-                Cancel
-              </button>
-              <button
-                className="btn btn-sm bg-orange-500 hover:bg-orange-600 text-white border-none"
-                onClick={handleStatusSave}
-                disabled={savingId === editingRecipe._id}
-              >
-                {savingId === editingRecipe._id ? "Saving..." : "Save"}
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
-    </div>
+                {STATUS_OPTIONS.map((s) => (
+                  <option key={s} value={s}>
+                    {s}
+                  </option>
+                ))}
+              </select>
+
+              <div className="flex flex-col-reverse sm:flex-row justify-end gap-2">
+                <button
+                  className="btn btn-sm btn-ghost"
+                  onClick={closeStatusEditor}
+                >
+                  Cancel
+                </button>
+                <button
+                  className="btn btn-sm bg-orange-500 hover:bg-orange-600 text-white border-none"
+                  onClick={handleStatusSave}
+                  disabled={savingId === editingRecipe._id}
+                >
+                  {savingId === editingRecipe._id ? "Saving..." : "Save"}
+                </button>
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* Delete confirm modal */}
+      <AnimatePresence>
+        {deletingRecipe && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            transition={{ duration: 0.2 }}
+            className="fixed inset-0 bg-black/40 flex items-center justify-center z-50 p-4"
+          >
+            <motion.div
+              initial={{ opacity: 0, scale: 0.95, y: 10 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.95, y: 10 }}
+              transition={{ duration: 0.2 }}
+              className="bg-white rounded-xl p-6 w-full max-w-sm shadow-lg"
+            >
+              <h3 className="text-lg font-bold text-gray-800 mb-1">
+                Delete recipe
+              </h3>
+              <p className="text-sm text-gray-500 mb-6">
+                Are you sure you want to delete{" "}
+                <span className="font-semibold text-gray-700">
+                  {deletingRecipe.recipeName}
+                </span>
+                ? This can&apos;t be undone.
+              </p>
+
+              <div className="flex flex-col-reverse sm:flex-row justify-end gap-2">
+                <button
+                  className="btn btn-sm btn-ghost"
+                  onClick={closeDeleteModal}
+                  disabled={deletingId === deletingRecipe._id}
+                >
+                  Cancel
+                </button>
+                <button
+                  className="btn btn-sm bg-red-500 hover:bg-red-600 text-white border-none"
+                  onClick={handleDeleteConfirm}
+                  disabled={deletingId === deletingRecipe._id}
+                >
+                  {deletingId === deletingRecipe._id ? "Deleting..." : "Delete"}
+                </button>
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+    </motion.div>
   );
 }
