@@ -82,7 +82,7 @@ const DashboardLayout = ({ children }) => {
   );
 };
 
-// Generic skeleton — dashboard-er kono page load howar age placeholder hisebe dekhabe
+
 function DashboardSkeleton() {
   return (
     <div className="space-y-8">

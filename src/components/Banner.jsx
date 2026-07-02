@@ -4,6 +4,7 @@ import Image from "next/image";
 import { motion } from "framer-motion";
 import { FaCarrot, FaLeaf } from "react-icons/fa";
 import { GiCirclingFish, GiTomato } from "react-icons/gi";
+import Link from "next/link";
 
 const Banner = () => {
   return (
@@ -115,21 +116,25 @@ const Banner = () => {
               transition={{ duration: 0.7, delay: 0.4, ease: "easeOut" }}
               className="mt-10 flex flex-wrap gap-5"
             >
-              <motion.button
-                whileHover={{ scale: 1.05 }}
-                whileTap={{ scale: 0.95 }}
-                className="bg-orange-500 hover:bg-orange-600 transition-all duration-300 text-white font-semibold px-7 py-2 rounded-xl shadow-lg hover:shadow-xl"
-              >
-                Explore Recipes
-              </motion.button>
+              <Link href="/browse">
+                <motion.button
+                  whileHover={{ scale: 1.05 }}
+                  whileTap={{ scale: 0.95 }}
+                  className="bg-orange-500 hover:bg-orange-600 transition-all duration-300 text-white font-semibold px-7 py-2 rounded-xl shadow-lg hover:shadow-xl"
+                >
+                  Explore Recipes
+                </motion.button>
+              </Link>
 
-              <motion.button
-                whileHover={{ scale: 1.05 }}
-                whileTap={{ scale: 0.95 }}
-                className="border-2 border-emerald-400 text-emerald-500 hover:bg-emerald-400 hover:text-white transition-all duration-300 px-5 py-2 rounded-xl font-semibold shadow"
-              >
-                Become Premium
-              </motion.button>
+              <Link href="/dashboard/user/profile">
+                <motion.button
+                  whileHover={{ scale: 1.05 }}
+                  whileTap={{ scale: 0.95 }}
+                  className="border-2 border-emerald-400 text-emerald-500 hover:bg-emerald-400 hover:text-white transition-all duration-300 px-5 py-2 rounded-xl font-semibold shadow"
+                >
+                  Become Premium
+                </motion.button>
+              </Link>
             </motion.div>
           </motion.div>
 
@@ -155,7 +160,7 @@ const Banner = () => {
                 width={650}
                 height={650}
                 priority
-                className="relative z-10 w-[240px] sm:w-[330px] md:w-[430px] lg:w-[560px] object-contain drop-shadow-[0_30px_35px_rgba(0,0,0,.35)] transition duration-500"
+                className="relative z-10 w-[230px] sm:w-[330px] md:w-[430px] lg:w-[540px] object-contain drop-shadow-[0_30px_35px_rgba(0,0,0,.35)] transition duration-500"
               />
             </motion.div>
           </div>

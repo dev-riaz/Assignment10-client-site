@@ -174,27 +174,6 @@ const Navbar = () => {
             transition={{ duration: 0.6, delay: 0.2, ease: "easeOut" }}
             className="relative"
           >
-            {/* Icon-only on small screens */}
-            <button
-              type="button"
-              className="btn btn-ghost btn-circle md:hidden"
-              aria-label="Search"
-            >
-              <svg
-                xmlns="http://www.w3.org/2000/svg"
-                className="h-5 w-5 text-gray-500"
-                fill="none"
-                viewBox="0 0 24 24"
-                stroke="currentColor"
-              >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth="2"
-                  d="M21 21l-4.35-4.35M17 11a6 6 0 11-12 0 6 6 0 0112 0z"
-                />
-              </svg>
-            </button>
 
             {/* Full input on medium+ screens */}
             <div className="hidden md:block">
@@ -257,7 +236,7 @@ const Navbar = () => {
 
                 <ul
                   tabIndex={0}
-                  className="menu md:menu-lg menu-sm dropdown-content mt-3 z-[1] w-48 rounded-box bg-white shadow p-2"
+                  className="menu md:menu-md menu-sm dropdown-content mt-1 y-[1]  w-45 rounded-box bg-white shadow p-2"
                 >
                   <li>
                     <Link

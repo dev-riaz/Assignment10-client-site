@@ -1,21 +1,24 @@
+// src/app/(mainLayout)/login/page.jsx
 "use client";
 
+import { Suspense } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import { motion } from "framer-motion";
 
 import { FcGoogle } from "react-icons/fc";
 import { FaEye, FaEyeSlash } from "react-icons/fa";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { useState } from "react";
 import toast from "react-hot-toast";
 
 import { signIn } from "@/lib/auth-client";
 
-const RegisterPage = () => {
+function LoginForm() {
   const [showPassword, setShowPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const router = useRouter();
+  const searchParams = useSearchParams();
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -29,23 +32,24 @@ const RegisterPage = () => {
       email,
       password,
     });
-    // console.log(data);
 
     if (error) {
-      const message = error.message || "Login failed. Check your Network connection.";
+      const message =
+        error.message || "Login failed. Check your Network connection.";
       toast.error(message);
       setIsLoading(false);
       return;
     }
 
     toast.success("Logged in successfully!");
-    router.push("/");
+
+    const redirectTo = searchParams.get("redirect") || "/";
+    router.push(redirectTo);
     setIsLoading(false);
   };
 
   return (
     <section className="min-h-screen w-11/12 mx-auto bg-orange-50 flex items-center justify-center px-4 py-8">
-      {/* <Toaster position="top-center" reverseOrder={false} /> */}
       <motion.div
         initial={{ opacity: 0, y: 24 }}
         animate={{ opacity: 1, y: 0 }}
@@ -72,7 +76,6 @@ const RegisterPage = () => {
             Log in to continue cooking 🍽️
           </motion.p>
 
-          {/* Google Sign In */}
           <motion.button
             type="button"
             initial={{ opacity: 0, y: 12 }}
@@ -100,7 +103,6 @@ const RegisterPage = () => {
           </motion.div>
 
           <form onSubmit={handleSubmit} className="space-y-2">
-            {/* Email */}
             <motion.div
               initial={{ opacity: 0, y: 12 }}
               animate={{ opacity: 1, y: 0 }}
@@ -120,7 +122,6 @@ const RegisterPage = () => {
               </div>
             </motion.div>
 
-            {/* Password */}
             <motion.div
               initial={{ opacity: 0, y: 12 }}
               animate={{ opacity: 1, y: 0 }}
@@ -148,7 +149,6 @@ const RegisterPage = () => {
               </div>
             </motion.div>
 
-            {/* Remember me / Forgot password */}
             <motion.div
               initial={{ opacity: 0, y: 12 }}
               animate={{ opacity: 1, y: 0 }}
@@ -250,18 +250,20 @@ const RegisterPage = () => {
             </div>
           </motion.div>
 
-          {/* Decorative Circle */}
           <div className="absolute -top-28 -left-28 w-72 h-72 rounded-full bg-white/10"></div>
-
           <div className="absolute -bottom-32 -right-20 w-80 h-80 rounded-full bg-white/10"></div>
-
           <div className="absolute top-10 right-10 w-5 h-5 rounded-full bg-white/40"></div>
-
           <div className="absolute bottom-20 left-10 w-3 h-3 rounded-full bg-white/40"></div>
         </motion.div>
       </motion.div>
     </section>
   );
-};
+}
 
-export default RegisterPage;
+export default function RegisterPage() {
+  return (
+    <Suspense fallback={null}>
+      <LoginForm />
+    </Suspense>
+  );
+}
