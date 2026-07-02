@@ -7,7 +7,7 @@ import { FiClock, FiHeart } from "react-icons/fi";
 import { motion } from "framer-motion";
 import { getFeaturedRecipes } from "@/lib/api/getRecipe";
 
-export default function FeaturedRecipes() {
+const FeaturedRecipe = () => {
   const [recipes, setRecipes] = useState([]);
   const [loading, setLoading] = useState(true);
 
@@ -124,4 +124,6 @@ export default function FeaturedRecipes() {
       </div>
     </section>
   );
-}
+};
+
+export default FeaturedRecipe;
