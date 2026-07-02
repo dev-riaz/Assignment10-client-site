@@ -10,6 +10,7 @@ import {
   getUserById,
   getUserByEmail,
   addPayment,
+  submitReport,
 } from "../../../../lib/api/getRecipe";
 import { use, useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
@@ -33,6 +34,14 @@ import { MdReport } from "react-icons/md";
 import { BiSolidPurchaseTag } from "react-icons/bi";
 
 const RECIPE_PRICE = 2.99;
+
+const REPORT_REASONS = [
+  "Spam or misleading",
+  "Inappropriate content",
+  "Copyright violation",
+  "Incorrect ingredients/instructions",
+  "Other",
+];
 
 /* ── Star Rating ── */
 const StarRating = ({ rating = 0 }) => {
@@ -70,6 +79,67 @@ const parseLines = (str = "") =>
     .map((s) => s.trim())
     .filter(Boolean);
 
+/* ── Report Modal ── */
+const ReportModal = ({ open, onClose, onSubmit, submitting }) => {
+  const [reason, setReason] = useState(REPORT_REASONS[0]);
+  const [details, setDetails] = useState("");
+
+  if (!open) return null;
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 px-4">
+      <div className="bg-white rounded-2xl shadow-xl w-full max-w-md p-6">
+        <h3 className="text-lg font-bold text-gray-800 mb-4">
+          Report this recipe
+        </h3>
+
+        <label className="text-sm font-medium text-gray-600 mb-1 block">
+          Reason
+        </label>
+        <select
+          value={reason}
+          onChange={(e) => setReason(e.target.value)}
+          className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm mb-4 focus:outline-none focus:ring-2 focus:ring-red-300"
+        >
+          {REPORT_REASONS.map((r) => (
+            <option key={r} value={r}>
+              {r}
+            </option>
+          ))}
+        </select>
+
+        <label className="text-sm font-medium text-gray-600 mb-1 block">
+          Additional details (optional)
+        </label>
+        <textarea
+          value={details}
+          onChange={(e) => setDetails(e.target.value)}
+          rows={4}
+          placeholder="Tell us more about the issue..."
+          className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm mb-5 resize-none focus:outline-none focus:ring-2 focus:ring-red-300"
+        />
+
+        <div className="flex justify-end gap-3">
+          <button
+            onClick={onClose}
+            disabled={submitting}
+            className="px-4 py-2 rounded-lg text-sm font-medium text-gray-500 hover:bg-gray-100 hover:cursor-pointer disabled:opacity-60"
+          >
+            Cancel
+          </button>
+          <button
+            onClick={() => onSubmit({ reason, details })}
+            disabled={submitting}
+            className="px-4 py-2 rounded-lg text-sm font-medium bg-red-500 hover:bg-red-600 text-white hover:cursor-pointer disabled:opacity-60"
+          >
+            {submitting ? "Submitting..." : "Submit Report"}
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+};
+
 /* ── Main Component ── */
 const RecipeDetailsPage = ({ params }) => {
   const { id } = use(params);
@@ -87,6 +157,9 @@ const RecipeDetailsPage = ({ params }) => {
   const [favChecking, setFavChecking] = useState(true);
 
   const [purchasing, setPurchasing] = useState(false);
+
+  const [reportOpen, setReportOpen] = useState(false);
+  const [reportSubmitting, setReportSubmitting] = useState(false);
 
   /* ── নিজের recipe কিনা চেক করা (author email ভিত্তিক) ── */
   const isOwnRecipe = session?.user?.email
@@ -288,6 +361,49 @@ const RecipeDetailsPage = ({ params }) => {
     }
   };
 
+  /* ── Report open (with auth guard) ── */
+  const handleReportClick = () => {
+    if (!session?.user?.email) {
+      router.push("/login");
+      return;
+    }
+    if (isOwnRecipe) {
+      toast.error("You can't report your own recipe.");
+      return;
+    }
+    setReportOpen(true);
+  };
+
+  /* ── Report submit ── */
+  const handleReportSubmit = async ({ reason, details }) => {
+    if (!recipe || reportSubmitting) return;
+
+    setReportSubmitting(true);
+    try {
+      const reportData = {
+        recipeId: recipe._id.toString(),
+        recipeName: recipe.recipeName,
+        reporterEmail: session.user.email,
+        authorEmail: recipe.authorEmail,
+        reason,
+        details,
+      };
+
+      const res = await submitReport(reportData);
+
+      if (res.success) {
+        toast.success("Report submitted. Thanks for the feedback!");
+        setReportOpen(false);
+      } else {
+        toast.error(res.message || "Failed to submit report.");
+      }
+    } catch (err) {
+      toast.error("Something went wrong while reporting.");
+    } finally {
+      setReportSubmitting(false);
+    }
+  };
+
   /* ── Loading ── */
   if (!recipe) {
     return (
@@ -436,8 +552,11 @@ const RecipeDetailsPage = ({ params }) => {
                   <span>{favorited ? "Saved" : "Favorite"}</span>
                 </button>
 
-                {/* Report */}
-                <button className="flex hover:cursor-pointer items-center gap-1.5 text-sm text-gray-400 hover:text-red-400 transition font-bold">
+                {/* Report — now wired up */}
+                <button
+                  onClick={handleReportClick}
+                  className="flex hover:cursor-pointer items-center gap-1.5 text-sm text-gray-400 hover:text-red-400 transition font-bold"
+                >
                   <MdReport className="text-base" />
                   <span>Report</span>
                 </button>
@@ -530,6 +649,13 @@ const RecipeDetailsPage = ({ params }) => {
           </div>
         </div>
       </div>
+
+      <ReportModal
+        open={reportOpen}
+        onClose={() => setReportOpen(false)}
+        onSubmit={handleReportSubmit}
+        submitting={reportSubmitting}
+      />
     </div>
   );
 };

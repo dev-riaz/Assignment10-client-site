@@ -47,7 +47,7 @@ const CategoryBadge = ({ category }) => {
   };
   return (
     <span
-      className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold ${style.bg} ${style.text}`}
+      className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold whitespace-nowrap ${style.bg} ${style.text}`}
     >
       {style.icon}
       {category}
@@ -133,20 +133,20 @@ const MyPurchasedRecipesPage = () => {
 
   return (
     <motion.div
-      className="bg-white border border-gray-200 rounded-2xl p-5 md:p-7"
+      className="bg-white border border-gray-200 rounded-2xl p-4 sm:p-5 md:p-7"
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.5, ease: "easeOut" }}
     >
       {/* ── Header ── */}
       <motion.div
-        className="flex items-start justify-between mb-6"
+        className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4 mb-6"
         initial={{ opacity: 0, y: -10 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.4, delay: 0.1, ease: "easeOut" }}
       >
         <div>
-          <h2 className="text-xl md:text-2xl font-bold text-gray-800">
+          <h2 className="text-lg sm:text-xl md:text-2xl font-bold text-gray-800">
             My Purchased Recipes
           </h2>
           <p className="text-sm text-gray-400 mt-1">
@@ -156,10 +156,10 @@ const MyPurchasedRecipesPage = () => {
 
         {/* Total Purchased */}
         <div className="flex items-center gap-3 flex-shrink-0">
-          <div className="w-12 h-12 rounded-xl bg-green-50 flex items-center justify-center">
+          <div className="w-11 h-11 sm:w-12 sm:h-12 rounded-xl bg-green-50 flex items-center justify-center flex-shrink-0">
             <FiShoppingBag className="text-green-500" size={22} />
           </div>
-          <div className="text-right">
+          <div>
             <p className="text-xs text-gray-400 font-medium">Total Purchased</p>
             <p className="text-lg font-bold text-green-500">
               {purchases.length} Recipes
@@ -185,8 +185,79 @@ const MyPurchasedRecipesPage = () => {
         </motion.div>
       ) : (
         <>
-          {/* ── Table ── */}
-          <div className="overflow-x-auto">
+          {/* ── Mobile Card List (below sm) ── */}
+
+          <div className="grid grid-cols-1 gap-3 sm:hidden">
+            <AnimatePresence mode="wait">
+              {paginated.map((recipe, index) => (
+                <motion.div
+                  key={recipe.id}
+                  className="border border-gray-100 rounded-xl p-3"
+                  initial={{ opacity: 0, y: 10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={{ opacity: 0 }}
+                  transition={{
+                    duration: 0.35,
+                    delay: index * 0.06,
+                    ease: "easeOut",
+                  }}
+                >
+                  <div className="flex gap-3">
+                    <div className="w-16 h-16 rounded-xl overflow-hidden flex-shrink-0 bg-gray-100">
+                      {recipe.image ? (
+                        <img
+                          src={recipe.image}
+                          alt={recipe.name}
+                          className="w-full h-full object-cover"
+                        />
+                      ) : null}
+                    </div>
+
+                    <div className="flex-1 min-w-0">
+                      <p className="text-sm font-bold text-gray-800 truncate">
+                        {recipe.name}
+                      </p>
+                      <div className="mt-1">
+                        <CategoryBadge category={recipe.category} />
+                      </div>
+                    </div>
+
+                    <p className="text-sm font-semibold text-gray-700 flex-shrink-0">
+                      {recipe.price}
+                    </p>
+                  </div>
+
+                  <div className="flex items-center justify-between mt-3 pt-3 border-t border-gray-100">
+                    <div>
+                      <p className="text-xs text-gray-700 font-medium">
+                        {recipe.purchasedOn}
+                      </p>
+                      <p className="text-xs text-gray-400 mt-0.5">
+                        {recipe.purchasedTime}
+                      </p>
+                    </div>
+
+                    <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold bg-green-50 text-green-600">
+                      <FaCheckCircle size={11} />
+                      {recipe.status}
+                    </span>
+                  </div>
+
+                  <a
+                    href={`/recipe/${recipe.recipeId}`}
+                    className="mt-3 inline-flex w-full items-center justify-center gap-1.5 px-4 py-2 rounded-lg border border-orange-400 text-orange-500 text-xs font-semibold hover:bg-orange-50 transition-colors"
+                  >
+                    <FaEye size={12} />
+                    View Details
+                  </a>
+                </motion.div>
+              ))}
+            </AnimatePresence>
+          </div>
+
+          {/* ── Table (sm and up) ── */}
+
+          <div className="hidden sm:block overflow-x-auto">
             <table className="w-full">
               {/* Head */}
               <thead>
@@ -296,7 +367,7 @@ const MyPurchasedRecipesPage = () => {
           {/* ── Pagination ── */}
           {totalPages > 1 && (
             <motion.div
-              className="flex items-center justify-center gap-2 mt-6"
+              className="flex items-center justify-center gap-2 mt-6 flex-wrap"
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               transition={{ duration: 0.4, delay: 0.3 }}

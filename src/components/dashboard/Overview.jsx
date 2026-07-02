@@ -11,7 +11,7 @@ import {
   getUserByEmail,
 } from "@/lib/api/getRecipe";
 
-/* ── কোনো তারিখ এই মাসে পড়ে কিনা চেক করে ── */
+
 const isThisMonth = (dateStr) => {
   if (!dateStr) return false;
   const d = new Date(dateStr);
@@ -46,7 +46,7 @@ const Overview = () => {
       ]);
 
       if (recipesRes?.success) {
-        // ── backend array অথবা single object দুটোই পাঠাতে পারে, তাই normalize করা হচ্ছে ──
+      
         const data = recipesRes.data;
         setRecipes(Array.isArray(data) ? data : data ? [data] : []);
       }
@@ -107,7 +107,7 @@ const Overview = () => {
     },
   ];
 
-  /* ── সবচেয়ে সাম্প্রতিক ৩টা recipe ── */
+  
   const recentRecipes = [...recipes]
     .sort((a, b) => new Date(b.createdAt || 0) - new Date(a.createdAt || 0))
     .slice(0, 3);
@@ -177,7 +177,7 @@ const Overview = () => {
           <h3 className="text-xl font-bold text-slate-800">Recent Recipes</h3>
 
           <a
-            href="/dashboard/my-recipes"
+            href="/dashboard/user/myRecipe"
             className="btn btn-outline btn-sm rounded-xl"
           >
             View All

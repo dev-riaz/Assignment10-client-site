@@ -105,3 +105,34 @@ export const getAllTransactionsAdmin = async ({ search = "", status = "" } = {})
     const query = params.toString();
     return await serverFetch(`/api/admin/payments${query ? `?${query}` : ""}`);
 };
+
+
+// Reports
+
+export const submitReport = async (reportData) => {
+    return await serverMutation(`/api/reports`, "POST", reportData);
+};
+
+export const getMyReports = async (email) => {
+    return await serverFetch(`/api/reports/${email}`);
+};
+
+// Admin: get all reports (any status)
+export const getAllReportsAdmin = async ({ search = "", status = "" } = {}) => {
+    const params = new URLSearchParams();
+    if (search) params.set("search", search);
+    if (status) params.set("status", status);
+
+    const query = params.toString();
+    return await serverFetch(`/api/admin/reports${query ? `?${query}` : ""}`);
+};
+
+// Admin: update a report's status (Pending / Reviewed / Resolved / Dismissed)
+export const updateReportStatus = async (id, status) => {
+    return await serverMutation(`/api/admin/reports/${id}`, "PATCH", { status });
+};
+
+// Admin: delete a report
+export const deleteReportAdmin = async (id) => {
+    return await serverMutation(`/api/admin/reports/${id}`, "DELETE", {});
+};
