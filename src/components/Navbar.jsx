@@ -1,6 +1,5 @@
 "use client";
 
-import { useState, useEffect } from "react";
 import Link from "next/link";
 import { motion } from "framer-motion";
 import { PiChefHat } from "react-icons/pi";
@@ -18,11 +17,6 @@ const Navbar = () => {
   const { data: session, isPending } = useSession();
   const router = useRouter();
   const pathname = usePathname();
-  const [mounted, setMounted] = useState(false);
-
-  useEffect(() => {
-    setMounted(true);
-  }, []);
 
   const handleLogout = async () => {
     await signOut({
@@ -180,6 +174,7 @@ const Navbar = () => {
             transition={{ duration: 0.6, delay: 0.2, ease: "easeOut" }}
             className="relative"
           >
+
             {/* Full input on medium+ screens */}
             <div className="hidden md:block">
               <svg
@@ -204,7 +199,7 @@ const Navbar = () => {
             </div>
           </motion.div>
 
-          {!mounted || isPending ? (
+          {isPending ? (
             <div className="w-24" />
           ) : session ? (
             <>
