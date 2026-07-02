@@ -1,14 +1,17 @@
 "use client";
 
 import { useEffect, useState, useCallback } from "react";
-import { FiEdit2, FiTrash2, FiSearch } from "react-icons/fi";
+import { FiEdit2, FiTrash2, FiSearch, FiStar } from "react-icons/fi";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   getAllRecipesAdmin,
   updateRecipeStatus,
   deleteRecipeAdmin,
-} from "@/lib/api/getRecipe"; 
+  toggleFeaturedRecipe,
+} from "@/lib/api/getRecipe";
+
 const STATUS_OPTIONS = ["Published", "Pending", "Rejected"];
+const MAX_FEATURED = 4;
 
 const statusColor = (status) => {
   switch (status) {
@@ -29,11 +32,12 @@ export default function ManageRecipesPage() {
   const [error, setError] = useState("");
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState("");
-  const [editingRecipe, setEditingRecipe] = useState(null); // recipe being status-edited
+  const [editingRecipe, setEditingRecipe] = useState(null);
   const [pendingStatus, setPendingStatus] = useState("");
   const [savingId, setSavingId] = useState(null);
   const [deletingId, setDeletingId] = useState(null);
-  const [deletingRecipe, setDeletingRecipe] = useState(null); // recipe being delete-confirmed
+  const [deletingRecipe, setDeletingRecipe] = useState(null);
+  const [featuringId, setFeaturingId] = useState(null);
 
   const fetchRecipes = useCallback(async () => {
     setLoading(true);
@@ -53,17 +57,14 @@ export default function ManageRecipesPage() {
   }, [search, statusFilter]);
 
   useEffect(() => {
-    const timeout = setTimeout(fetchRecipes, 300); // debounce search
+    const timeout = setTimeout(fetchRecipes, 300);
     return () => clearTimeout(timeout);
   }, [fetchRecipes]);
 
-  const openDeleteModal = (recipe) => {
-    setDeletingRecipe(recipe);
-  };
+  const featuredCount = recipes.filter((r) => r.isFeatured).length;
 
-  const closeDeleteModal = () => {
-    setDeletingRecipe(null);
-  };
+  const openDeleteModal = (recipe) => setDeletingRecipe(recipe);
+  const closeDeleteModal = () => setDeletingRecipe(null);
 
   const handleDeleteConfirm = async () => {
     if (!deletingRecipe) return;
@@ -117,6 +118,35 @@ export default function ManageRecipesPage() {
     }
   };
 
+  const handleToggleFeatured = async (recipe) => {
+    const next = !recipe.isFeatured;
+
+    if (next && featuredCount >= MAX_FEATURED) {
+      alert(
+        `Already ${MAX_FEATURED} recipes are featured. Unfeature one first.`,
+      );
+      return;
+    }
+
+    setFeaturingId(recipe._id);
+    try {
+      const res = await toggleFeaturedRecipe(recipe._id, next);
+      if (res?.success) {
+        setRecipes((prev) =>
+          prev.map((r) =>
+            r._id === recipe._id ? { ...r, isFeatured: next } : r,
+          ),
+        );
+      } else {
+        alert(res?.message || "Failed to update featured status");
+      }
+    } catch (err) {
+      alert(err.message || "Something went wrong");
+    } finally {
+      setFeaturingId(null);
+    }
+  };
+
   return (
     <motion.div
       initial={{ opacity: 0, y: 20 }}
@@ -134,36 +164,42 @@ export default function ManageRecipesPage() {
           Manage Recipes
         </motion.h2>
 
-        <motion.div
-          initial={{ opacity: 0, x: 10 }}
-          animate={{ opacity: 1, x: 0 }}
-          transition={{ duration: 0.3 }}
-          className="flex flex-col sm:flex-row gap-3"
-        >
-          <label className="input input-bordered flex items-center gap-2 w-full sm:w-auto">
-            <FiSearch className="text-gray-400" />
-            <input
-              type="text"
-              className="grow"
-              placeholder="Search by recipe name"
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-            />
-          </label>
+        <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3">
+          <span className="text-sm text-gray-500 font-medium whitespace-nowrap">
+            Featured: {featuredCount} / {MAX_FEATURED}
+          </span>
 
-          <select
-            className="select select-bordered w-full sm:w-auto"
-            value={statusFilter}
-            onChange={(e) => setStatusFilter(e.target.value)}
+          <motion.div
+            initial={{ opacity: 0, x: 10 }}
+            animate={{ opacity: 1, x: 0 }}
+            transition={{ duration: 0.3 }}
+            className="flex flex-col sm:flex-row gap-3"
           >
-            <option value="">All statuses</option>
-            {STATUS_OPTIONS.map((s) => (
-              <option key={s} value={s}>
-                {s}
-              </option>
-            ))}
-          </select>
-        </motion.div>
+            <label className="input input-bordered flex items-center gap-2 w-full sm:w-auto">
+              <FiSearch className="text-gray-400" />
+              <input
+                type="text"
+                className="grow"
+                placeholder="Search by recipe name"
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+              />
+            </label>
+
+            <select
+              className="select select-bordered w-full sm:w-auto"
+              value={statusFilter}
+              onChange={(e) => setStatusFilter(e.target.value)}
+            >
+              <option value="">All statuses</option>
+              {STATUS_OPTIONS.map((s) => (
+                <option key={s} value={s}>
+                  {s}
+                </option>
+              ))}
+            </select>
+          </motion.div>
+        </div>
       </div>
 
       {loading ? (
@@ -188,7 +224,7 @@ export default function ManageRecipesPage() {
         </motion.div>
       ) : (
         <div className="overflow-x-auto -mx-4 sm:mx-0">
-          <div className="min-w-[700px] px-4 sm:px-0 sm:min-w-0">
+          <div className="min-w-[780px] px-4 sm:px-0 sm:min-w-0">
             <table className="table w-full">
               <thead className="bg-gray-50">
                 <tr>
@@ -202,57 +238,91 @@ export default function ManageRecipesPage() {
 
               <tbody>
                 <AnimatePresence>
-                  {recipes.map((recipe, index) => (
-                    <motion.tr
-                      key={recipe._id}
-                      layout
-                      initial={{ opacity: 0, y: 10 }}
-                      animate={{ opacity: 1, y: 0 }}
-                      exit={{ opacity: 0, y: -10 }}
-                      transition={{ duration: 0.25, delay: index * 0.03 }}
-                    >
-                      <td className="font-medium whitespace-nowrap">
-                        {recipe.recipeName}
-                      </td>
-                      <td className="whitespace-nowrap">
-                        {recipe.authorName || recipe.authorEmail}
-                      </td>
-                      <td className="whitespace-nowrap">{recipe.category}</td>
-                      <td>
-                        <motion.span
-                          key={recipe.status}
-                          initial={{ scale: 0.8, opacity: 0 }}
-                          animate={{ scale: 1, opacity: 1 }}
-                          transition={{ duration: 0.2 }}
-                          className={`font-semibold ${statusColor(recipe.status)}`}
-                        >
-                          {recipe.status || "Pending"}
-                        </motion.span>
-                      </td>
-                      <td>
-                        <div className="flex justify-center gap-2">
-                          <motion.button
-                            whileHover={{ scale: 1.05 }}
-                            whileTap={{ scale: 0.95 }}
-                            className="btn btn-sm btn-outline border-orange-300 text-orange-500 hover:bg-orange-500 hover:text-white"
-                            onClick={() => openStatusEditor(recipe)}
-                          >
-                            <FiEdit2 />
-                          </motion.button>
+                  {recipes.map((recipe, index) => {
+                    const isFeatured = !!recipe.isFeatured;
+                    const disableFeature =
+                      !isFeatured && featuredCount >= MAX_FEATURED;
 
-                          <motion.button
-                            whileHover={{ scale: 1.05 }}
-                            whileTap={{ scale: 0.95 }}
-                            className="btn btn-sm btn-outline border-red-300 text-red-500 hover:bg-red-500 hover:text-white whitespace-nowrap"
-                            onClick={() => openDeleteModal(recipe)}
+                    return (
+                      <motion.tr
+                        key={recipe._id}
+                        layout
+                        initial={{ opacity: 0, y: 10 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        exit={{ opacity: 0, y: -10 }}
+                        transition={{ duration: 0.25, delay: index * 0.03 }}
+                      >
+                        <td className="font-medium whitespace-nowrap">
+                          {recipe.recipeName}
+                        </td>
+                        <td className="whitespace-nowrap">
+                          {recipe.authorName || recipe.authorEmail}
+                        </td>
+                        <td className="whitespace-nowrap">{recipe.category}</td>
+                        <td>
+                          <motion.span
+                            key={recipe.status}
+                            initial={{ scale: 0.8, opacity: 0 }}
+                            animate={{ scale: 1, opacity: 1 }}
+                            transition={{ duration: 0.2 }}
+                            className={`font-semibold ${statusColor(recipe.status)}`}
                           >
-                            <FiTrash2 />
-                            Delete
-                          </motion.button>
-                        </div>
-                      </td>
-                    </motion.tr>
-                  ))}
+                            {recipe.status || "Pending"}
+                          </motion.span>
+                        </td>
+                        <td>
+                          <div className="flex justify-center gap-2">
+                            <motion.button
+                              whileHover={{ scale: disableFeature ? 1 : 1.05 }}
+                              whileTap={{ scale: disableFeature ? 1 : 0.95 }}
+                              className={`btn btn-sm whitespace-nowrap ${
+                                isFeatured
+                                  ? "bg-orange-500 hover:bg-orange-600 text-white border-none"
+                                  : "btn-outline border-orange-300 text-orange-500 hover:bg-orange-500 hover:text-white"
+                              }`}
+                              onClick={() => handleToggleFeatured(recipe)}
+                              disabled={
+                                disableFeature || featuringId === recipe._id
+                              }
+                              title={
+                                disableFeature
+                                  ? `Max ${MAX_FEATURED} featured recipes allowed`
+                                  : ""
+                              }
+                            >
+                              <FiStar
+                                className={isFeatured ? "fill-white" : ""}
+                              />
+                              {featuringId === recipe._id
+                                ? "..."
+                                : isFeatured
+                                  ? "Featured"
+                                  : "Feature"}
+                            </motion.button>
+
+                            <motion.button
+                              whileHover={{ scale: 1.05 }}
+                              whileTap={{ scale: 0.95 }}
+                              className="btn btn-sm btn-outline border-orange-300 text-orange-500 hover:bg-orange-500 hover:text-white"
+                              onClick={() => openStatusEditor(recipe)}
+                            >
+                              <FiEdit2 />
+                            </motion.button>
+
+                            <motion.button
+                              whileHover={{ scale: 1.05 }}
+                              whileTap={{ scale: 0.95 }}
+                              className="btn btn-sm btn-outline border-red-300 text-red-500 hover:bg-red-500 hover:text-white whitespace-nowrap"
+                              onClick={() => openDeleteModal(recipe)}
+                            >
+                              <FiTrash2 />
+                              Delete
+                            </motion.button>
+                          </div>
+                        </td>
+                      </motion.tr>
+                    );
+                  })}
                 </AnimatePresence>
               </tbody>
             </table>

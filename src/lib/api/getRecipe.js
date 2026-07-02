@@ -136,3 +136,12 @@ export const updateReportStatus = async (id, status) => {
 export const deleteReportAdmin = async (id) => {
     return await serverMutation(`/api/admin/reports/${id}`, "DELETE", {});
 };
+
+
+export const toggleFeaturedRecipe = async (id, isFeatured) => {
+    return await serverMutation(`/api/admin/recipes/${id}/featured`, "PATCH", { isFeatured });
+};
+
+export const getFeaturedRecipes = async () => {
+    return await serverFetch(`/api/recipes/featured`);
+};

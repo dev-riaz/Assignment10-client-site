@@ -82,6 +82,7 @@ const adminMenus = [
     icon: <MdOutlineAttachMoney size={20} />,
   },
 ];
+
 const Sidebar = () => {
   const { data: session, isPending } = useSession();
   const role = session?.user?.role;
@@ -108,6 +109,15 @@ const Sidebar = () => {
     }
   };
 
+  /* ── Session still resolving — show skeleton so wrong menu never flashes ── */
+  if (isPending) {
+    return (
+      <aside className="w-72 min-h-full bg-slate-900 text-white flex flex-col items-center justify-center">
+        <span className="loading loading-spinner loading-lg text-orange-500" />
+      </aside>
+    );
+  }
+
   return (
     <motion.aside
       className="w-72 min-h-full bg-slate-900 text-white flex flex-col"
@@ -132,7 +142,10 @@ const Sidebar = () => {
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.5, delay: 0.2, ease: "easeOut" }}
       >
-        <Link href="/dashboard/user/profile" className="flex items-center gap-3">
+        <Link
+          href="/dashboard/user/profile"
+          className="flex items-center gap-3"
+        >
           {session?.user?.image ? (
             <Image
               src={session.user.image}

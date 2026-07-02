@@ -383,10 +383,8 @@ const RecipeDetailsPage = ({ params }) => {
       const reportData = {
         recipeId: recipe._id.toString(),
         recipeName: recipe.recipeName,
-        reporterEmail: session.user.email,
-        authorEmail: recipe.authorEmail,
-        reason,
-        details,
+        reportedByEmail: session.user.email,
+        message: details ? `${reason}: ${details}` : reason,
       };
 
       const res = await submitReport(reportData);
@@ -552,7 +550,7 @@ const RecipeDetailsPage = ({ params }) => {
                   <span>{favorited ? "Saved" : "Favorite"}</span>
                 </button>
 
-                {/* Report — now wired up */}
+                {/* Report — wired up */}
                 <button
                   onClick={handleReportClick}
                   className="flex hover:cursor-pointer items-center gap-1.5 text-sm text-gray-400 hover:text-red-400 transition font-bold"
